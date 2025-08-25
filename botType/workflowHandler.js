@@ -99,17 +99,26 @@ async function handleRequest(req, res, config, requestId, startTime) {
       body: data,
     });
 
-    const userId = "apiuser"; // 如果可用，替换为实际的用户 ID
+    const userId = config.API_USER; // 如果可用，替换为实际的用户 ID
     const lastMessage = messages[messages.length - 1];
-    
+
     // 第一步：先扫描所有消息中的图片内容
     log("info", "开始扫描所有消息中的图片", { requestId, messageCount: messages.length });
     for (const message of messages) {
       if (Array.isArray(message.content)) {
-        for (const content of message.content) {
+        for (let content of message.content) {
+          try {
+            content = JSON.parse(content);
+          } catch (error) {
+            // nothing
+          }
+          let fileKeyName = "file_input";
+          if (content.key !== undefined && typeof content.key === "string") {
+            fileKeyName = content.key;
+          }
           if (content.type === "image_url" && content.image_url && content.image_url.url) {
             const imageUrl = content.image_url.url;
-            
+
             // 检查URL是否为base64数据
             if (imageUrl.startsWith('data:')) {
               // 是base64数据，需要上传
@@ -127,7 +136,7 @@ async function handleRequest(req, res, config, requestId, startTime) {
                 upload_file_id: fileId,
                 type: fileType,
               };
-              inputs["file_input"] = fileInput;
+              inputs[fileKeyName] = fileInput;
             } else {
               // 是真正的URL，直接使用remote_url方式
               const fileExt = getFileExtension(imageUrl);
@@ -138,16 +147,21 @@ async function handleRequest(req, res, config, requestId, startTime) {
                 url: imageUrl,
                 type: fileType,
               };
-              inputs["file_input"] = fileInput;
+              inputs[fileKeyName] = fileInput;
             }
           }
         }
       }
     }
-    
+
     // 第二步：从最后一条消息中提取查询文本
     if (Array.isArray(lastMessage.content)) {
-      for (const content of lastMessage.content) {
+      for (let content of lastMessage.content) {
+        try {
+          content = JSON.parse(content);
+        } catch (error) {
+          // nothing
+        }
         // 处理字符串类型的内容（OpenAI格式）
         if (typeof content === "string") {
           // 将字符串类型的内容设置为输入变量
@@ -158,11 +172,42 @@ async function handleRequest(req, res, config, requestId, startTime) {
           // 假设文本内容是输入变量，需要根据您的应用逻辑调整
           inputs["text_input"] = content.text;
         }
+        // 处理json类型的内容
+        else if (content.type === "json") {
+          if (typeof content.text === "object") {
+            Object.assign(inputs, content.text);
+          } else if (typeof content.text === "string") {
+            Object.assign(inputs, JSON.parse(content.text));
+          }
+        }
+        else if (typeof content === "object") {
+          Object.assign(inputs, content.text || content);
+        }
         // 注意：这里不再重复处理image_url，因为已经在上面处理过了
       }
     } else {
+      let content = lastMessage.content;
+      try {
+        content = JSON.parse(content);
+      } catch (error) {
+        // nothing
+      }
       // 假设消息内容是输入变量，需要根据您的应用逻辑调整
-      inputs["text_input"] = lastMessage.content;
+      if (typeof content === "object") {
+        if (typeof content.type !== 'undefined' && content.type === "json") {
+          if (typeof content.text === "object") {
+            Object.assign(inputs, content.text);
+          } else if (typeof content.text === "string") {
+            Object.assign(inputs, JSON.parse(content.text));
+          } else {
+            Object.assign(inputs, content);
+          }
+        } else {
+          Object.assign(inputs, content.text || content);
+        }
+      } else if (typeof content === "string") {
+        inputs["text_input"] = content;
+      }
     }
 
     // 日志记录
@@ -231,6 +276,8 @@ async function handleRequest(req, res, config, requestId, startTime) {
 
     if (stream) {
       res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
       let buffer = "";
       const responseStream = resp.body
         .pipe(new PassThrough())
@@ -268,7 +315,30 @@ async function handleRequest(req, res, config, requestId, startTime) {
             } else if (chunkObj.event === "node_finished") {
               // 处理 node_finished 事件
             } else if (chunkObj.event === "workflow_finished") {
-              const outputs = chunkObj.data.outputs;
+              const chunkId = `chatcmpl-${Date.now()}`;
+              const chunkCreated = chunkObj.created_at;
+              res.write(
+                "data: " +
+                  JSON.stringify({
+                    id: chunkId,
+                    object: "chat.completion.chunk",
+                    created: chunkCreated,
+                    model: data.model,
+                    choices: [
+                      {
+                        index: 0,
+                        delta: {},
+                        finish_reason: "stop",
+                      },
+                    ],
+                  }) +
+                  "\n\n"
+              );
+              res.write("data: [DONE]\n\n");
+              res.end();
+              isResponseEnded = true;
+            } else if (chunkObj.event === "text_chunk") {
+              const outputs = chunkObj.data;
               let result;
               if (config.OUTPUT_VARIABLE) {
                 result = outputs[config.OUTPUT_VARIABLE];
@@ -292,15 +362,12 @@ async function handleRequest(req, res, config, requestId, startTime) {
                           delta: {
                             content: result,
                           },
-                          finish_reason: "stop",
+                          finish_reason: null,
                         },
                       ],
                     }) +
                     "\n\n"
                 );
-                res.write("data: [DONE]\n\n");
-                res.end();
-                isResponseEnded = true;
               }
             } else if (chunkObj.event === "ping") {
               // 处理 ping 事件

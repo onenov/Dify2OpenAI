@@ -47,13 +47,14 @@ function parseConfig(authHeader, modelParam) {
 
   // 方式一：所有信息都在 Authorization header 中
   if (tokenParts.length >= 3) {
-    const [difyApiUrl, apiKey, botType, inputVariable, outputVariable] = tokenParts;
+    const [difyApiUrl, apiKey, botType, inputVariable, outputVariable, apiUser] = tokenParts;
     config = {
       DIFY_API_URL: difyApiUrl,
       API_KEY: apiKey,
       BOT_TYPE: botType,
-      INPUT_VARIABLE: inputVariable || "",
-      OUTPUT_VARIABLE: outputVariable || "",
+      INPUT_VARIABLE: inputVariable || "query",
+      OUTPUT_VARIABLE: outputVariable || "text",
+      API_USER: apiUser || "apiuser",
     };
     log("info", "配置解析成功 - 方式一", config);
     return config;
@@ -62,7 +63,7 @@ function parseConfig(authHeader, modelParam) {
   // 方式二和方式三的处理
   if (tokenParts.length === 1) {
     const singleValue = tokenParts[0].trim();
-    
+
     // 解析 model 参数
     if (!modelParam) {
       log("error", "缺少 model 参数");
@@ -78,21 +79,23 @@ function parseConfig(authHeader, modelParam) {
     // 方式二：Authorization 是 API_KEY
     if (singleValue.length > 0 && !singleValue.includes("http")) {
       config.API_KEY = singleValue;
-      const [_, botType, difyApiUrl, inputVariable, outputVariable] = modelParts;
+      const [_, botType, difyApiUrl, inputVariable, outputVariable, apiUser] = modelParts;
       config.DIFY_API_URL = difyApiUrl;
       config.BOT_TYPE = botType;
-      config.INPUT_VARIABLE = inputVariable || "";
-      config.OUTPUT_VARIABLE = outputVariable || "";
+      config.INPUT_VARIABLE = inputVariable || "query";
+      config.OUTPUT_VARIABLE = outputVariable || "text";
+      config.API_USER = apiUser || "apiuser";
       log("info", "配置解析成功 - 方式二", config);
     }
     // 方式三：Authorization 是 DIFY_API_URL
     else {
       config.DIFY_API_URL = singleValue;
-      const [_, apiKey, botType, inputVariable, outputVariable] = modelParts;
+      const [_, apiKey, botType, inputVariable, outputVariable, apiUser] = modelParts;
       config.API_KEY = apiKey;
       config.BOT_TYPE = botType;
-      config.INPUT_VARIABLE = inputVariable || "";
-      config.OUTPUT_VARIABLE = outputVariable || "";
+      config.INPUT_VARIABLE = inputVariable || "query";
+      config.OUTPUT_VARIABLE = outputVariable || "text";
+      config.API_USER = apiUser || "apiuser";
       log("info", "配置解析成功 - 方式三", config);
     }
   }

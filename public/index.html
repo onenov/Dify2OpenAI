@@ -4,783 +4,1610 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Dify2OpenAI Gateway - 将Dify应用转换为OpenAI API接口的网关服务">
-  <title>Dify2OpenAI Gateway</title>
+  <meta name="description" content="Dify2OpenAI Gateway 静态 API 文档，涵盖统一鉴权、请求 schema、事件类型与响应结构。">
+  <title>Dify2OpenAI Gateway Docs</title>
   <link rel="shortcut icon" href="https://io.onenov.cn/file/202504050505441.ico" type="image/x-icon">
-  <!-- 引入TailwindCSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入字体图标 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Prism.js 用于代码高亮 -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#3b82f6',
-            secondary: '#4b5563',
-            dify: '#38bdf8'
-          },
-          animation: {
-            'bounce-slow': 'bounce 3s infinite',
-          }
-        }
-      }
-    }
-  </script>
   <style>
-    /* 平滑滚动 */
+    :root {
+      --page-bg: linear-gradient(180deg, #f3f8ff 0%, #eef5ff 48%, #f8fbff 100%);
+      --card-bg: rgba(255, 255, 255, 0.92);
+      --card-border: rgba(148, 163, 184, 0.18);
+      --card-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+      --card-shadow-hover: 0 28px 80px rgba(15, 23, 42, 0.12);
+      --radius-xl: 0.875rem;
+      --radius-2xl: 1rem;
+      --radius-3xl: 1.125rem;
+      --text-main: #0f172a;
+      --text-subtle: #475569;
+      --text-faint: #64748b;
+      --brand: #2563eb;
+      --brand-soft: #dbeafe;
+      --brand-strong: #1d4ed8;
+      --surface: #f8fbff;
+      --surface-strong: #f8fafc;
+      --code-bg: #030616;
+    }
+
     html {
       scroll-behavior: smooth;
     }
 
-    /* 自定义滚动条 */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 8px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #c5c5c5;
-      border-radius: 8px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #a0aec0;
-    }
-
-    /* 背景渐变 */
     body {
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+      background: var(--page-bg);
+      color: var(--text-main);
     }
 
-    /* 可编辑的样式 */
-    .editable {
-      border-bottom: 1px dashed #a0aec0;
-      padding: 2px 4px;
+    .glass-header {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .header-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.15rem;
+      height: 2.15rem;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 0.7rem;
+      background: rgba(255, 255, 255, 0.72);
+      color: #334155;
+      padding: 0;
+      font-size: 14px;
+      line-height: 1;
+      transition: all 0.2s ease;
+      flex: 0 0 auto;
+    }
+
+    .header-link:hover {
+      color: var(--brand-strong);
+      border-color: rgba(37, 99, 235, 0.22);
+      background: rgba(239, 246, 255, 0.92);
+    }
+
+    .site-footer {
+      padding: 1rem 1.5rem 2rem;
+      color: #64748b;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .doc-table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .doc-table th,
+    .doc-table td {
+      border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+      padding: 14px 16px;
+      vertical-align: top;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .doc-table th {
+      background: linear-gradient(180deg, #f8fbff 0%, #f8fafc 100%);
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .doc-table tbody tr:hover td {
+      background: rgba(248, 250, 252, 0.72);
+    }
+
+    .section-anchor {
+      scroll-margin-top: 96px;
+    }
+
+    .sidebar-shell {
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-2xl);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .sidebar-link {
+      border-radius: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar-link:hover {
+      background: rgba(219, 234, 254, 0.55);
+      color: var(--brand-strong);
+    }
+
+    .sidebar-link.active {
+      background: var(--brand-soft);
+      color: var(--brand-strong);
+      font-weight: 600;
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+    }
+
+    .doc-card {
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-3xl);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .doc-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .metric-card {
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 251, 255, 0.95) 100%);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .request-tab {
+      border-radius: 999px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+    }
+
+    .request-tab:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
+    }
+
+    .control-chip {
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 0.55rem 0.9rem;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+
+    .code-scroll {
+      max-height: 460px;
+      overflow: auto;
+      border-radius: none;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+    }
+
+    .code-scroll::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .code-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    .soft-panel {
+      border: 1px solid rgba(226, 232, 240, 0.92);
+      border-radius: var(--radius-2xl);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 251, 255, 0.98) 100%);
+      box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .code-window {
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: var(--radius-2xl);
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .code-window-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--code-bg);
+    }
+
+    .window-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .window-dot {
+      width: 0.7rem;
+      height: 0.7rem;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    }
+
+    .window-dot.red {
+      background: #fb7185;
+    }
+
+    .window-dot.yellow {
+      background: #fbbf24;
+    }
+
+    .window-dot.green {
+      background: #34d399;
+    }
+
+    .window-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.88);
+    }
+
+    .event-grid {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      padding: 1.5rem;
+    }
+
+    @media (min-width: 1280px) {
+      .event-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .event-card {
+      border: 1px solid rgba(226, 232, 240, 0.92);
+      border-radius: var(--radius-2xl);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 251, 255, 0.98) 100%);
+      box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .copy-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.9rem;
+      height: 1.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 0.55rem;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(226, 232, 240, 0.88);
+      padding: 0;
+      font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      box-shadow: none;
+      flex: 0 0 auto;
     }
 
-    .editable:hover {
-      background-color: rgba(59, 130, 246, 0.1);
-      border-bottom: 1px dashed #3b82f6;
+    .copy-button:hover {
+      border-color: rgba(96, 165, 250, 0.34);
+      color: #ffffff;
+      background: rgba(59, 130, 246, 0.12);
     }
 
-    .editable:focus {
-      outline: none;
-      background-color: rgba(59, 130, 246, 0.1);
-      border-bottom: 1px solid #3b82f6;
+    .copy-button.copied {
+      background: rgba(52, 211, 153, 0.12);
+      color: #a7f3d0;
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+
+    pre[class*="language-"] {
+      margin: 0;
+      border-radius: 0;
+      background: var(--code-bg) !important;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    code[class*="language-"] {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
     }
   </style>
 </head>
 
-<body class="text-gray-800 min-h-screen antialiased">
-  <header class="bg-white shadow-sm sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex justify-between items-center">
-      <div class="flex items-center space-x-2">
-        <i class="fas fa-exchange-alt text-blue-500"></i>
-        <span class="font-bold text-xl text-blue-700">Dify2OpenAI</span>
-      </div>
-      <div class="flex space-x-4">
-        <a href="https://github.com/onenov/Dify2OpenAI"
-          class="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
-          <i class="fab fa-github mr-1"></i>
-          <span>GitHub</span>
-        </a>
-      </div>
-  </header>
-
-  <div class="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-    <!-- 标题区 -->
-    <div class="mb-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-10 text-white">
-      <div class="mx-auto">
-        <h1 class="text-4xl font-bold mb-4 flex items-center">
-          <i class="fas fa-exchange-alt mr-3 text-blue-200"></i>
-          Dify2OpenAI Gateway
-        </h1>
-        <p class="text-xl opacity-90">
-          Dify2OpenAI 是一个将 Dify 应用程序转换为 OpenAI API 接口的网关服务，使您可以使用 OpenAI API 兼容的方式与 Dify 应用进行交互。
-        </p>
-        <div class="mt-6 flex flex-wrap gap-4">
-          <a href="#config"
-            class="bg-white text-blue-600 hover:bg-blue-50 transition-colors rounded-full px-5 py-2 font-semibold flex items-center">
-            <i class="fas fa-cog mr-2"></i>配置参数
+<body class="min-h-screen antialiased">
+  <header class="glass-header sticky top-0 z-50 border-b border-white/60">
+    <div class="w-full px-6 py-4 lg:px-10">
+      <div class="flex items-center justify-between gap-6">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <div>
+            <div class="text-sm font-semibold tracking-wide text-blue-600">Dify2OpenAI</div>
+            <div class="text-lg font-bold text-slate-950">Gateway API Documentation</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <nav class="hidden items-center gap-5 text-sm text-slate-600 md:flex">
+            <a href="#overview" class="hover:text-blue-600">概览</a>
+            <a href="#auth" class="hover:text-blue-600">鉴权</a>
+            <a href="#request-schema" class="hover:text-blue-600">请求 Schema</a>
+            <a href="#events" class="hover:text-blue-600">事件类型</a>
+            <a href="#response-schema" class="hover:text-blue-600">响应结构</a>
+          </nav>
+          <a href="mailto:dev@orence.ai" class="header-link" aria-label="发送邮件到 dev@orence.ai" title="dev@orence.ai">
+            <i class="fas fa-envelope"></i>
           </a>
-          <a href="#access"
-            class="bg-white/20 hover:bg-white/30 transition-colors rounded-full px-5 py-2 font-semibold flex items-center">
-            <i class="fas fa-plug mr-2"></i>接入方式
+          <a href="https://github.com/onenov/Dify2OpenAI" target="_blank" rel="noreferrer" class="header-link" aria-label="查看 GitHub 仓库" title="GitHub">
+            <i class="fab fa-github"></i>
           </a>
         </div>
       </div>
     </div>
+  </header>
 
-    <!-- 配置参数 -->
-    <section id="config" class="mb-12 scroll-mt-20">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-blue-500 pl-3 flex items-center">
-        <i class="fas fa-cog mr-2 text-blue-500"></i>配置参数
-      </h2>
-      <div class="overflow-x-auto rounded-lg shadow">
-        <table class="min-w-full bg-white">
-          <thead>
-            <tr class="bg-blue-50 text-left text-gray-700">
-              <th class="py-3 px-4 text-sm font-medium uppercase tracking-wider">参数</th>
-              <th class="py-3 px-4 text-sm font-medium uppercase tracking-wider">说明</th>
-              <th class="py-3 px-4 text-sm font-medium uppercase tracking-wider">示例</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr class="hover:bg-gray-50">
-              <td class="py-3 px-4 font-medium">DIFY_API_URL</td>
-              <td class="py-3 px-4">Dify 服务的 API 基础 URL</td>
-              <td class="py-3 px-4 font-mono text-sm text-blue-600">
-                <span class="editable" contenteditable="true" id="dify-api-url">https://cloud.dify.ai/v1</span>
-              </td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="py-3 px-4 font-medium">API_KEY</td>
-              <td class="py-3 px-4">Dify 应用的 API 密钥</td>
-              <td class="py-3 px-4 font-mono text-sm text-blue-600">
-                <span class="editable" contenteditable="true" id="api-key">app-xxxx</span>
-              </td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="py-3 px-4 font-medium">BOT_TYPE</td>
-              <td class="py-3 px-4">应用类型（Chat、Completion、Workflow）</td>
-              <td class="py-3 px-4 font-mono text-sm text-blue-600">
-                <span class="editable" contenteditable="true" id="bot-type">Chat</span>
-              </td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="py-3 px-4 font-medium">INPUT_VARIABLE</td>
-              <td class="py-3 px-4">输入变量名称（仅 Workflow 类型需要）</td>
-              <td class="py-3 px-4 font-mono text-sm text-blue-600">
-                <span class="editable" contenteditable="true" id="input-variable">input</span>
-              </td>
-            </tr>
-            <tr class="hover:bg-gray-50">
-              <td class="py-3 px-4 font-medium">OUTPUT_VARIABLE</td>
-              <td class="py-3 px-4">输出变量名称（仅 Workflow 类型需要）</td>
-              <td class="py-3 px-4 font-mono text-sm text-blue-600">
-                <span class="editable" contenteditable="true" id="output-variable">output</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 接入方式 -->
-    <section id="access" class="mb-12 scroll-mt-20">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-blue-500 pl-3 flex items-center">
-        <i class="fas fa-plug mr-2 text-blue-500"></i>接入方式
-      </h2>
-
-      <!-- 方式一 -->
-      <div class="bg-white rounded-lg shadow-md p-6 mb-8 hover:shadow-lg transition-shadow duration-300">
-        <h3 class="text-xl font-semibold text-blue-700 mb-4 flex items-center">
-          <i class="fas fa-key mr-2"></i>方式一：所有配置在 Authorization Header 中
-        </h3>
-        <div class="mb-4">
-          <p class="mb-2 font-medium">✔️ Authorization Header 格式：</p>
-          <div class="bg-gray-100 p-3 rounded-md font-mono text-sm overflow-x-auto">
-            Authorization: Bearer DIFY_API_URL|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE
+  <main class="w-full px-6 py-8 lg:px-10">
+    <div class="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
+      <aside class="hidden lg:block">
+        <div class="sidebar-shell sticky top-24">
+          <div
+            class="border-b border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            目录
+          </div>
+          <nav class="space-y-1 p-3 text-sm">
+            <a href="#overview"
+              class="sidebar-link block px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600">概览</a>
+            <a href="#auth"
+              class="sidebar-link block px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600">唯一鉴权规范</a>
+            <a href="#routing"
+              class="sidebar-link block px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600">四类应用映射</a>
+            <a href="#request-schema"
+              class="sidebar-link block px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600">请求 Schema</a>
+            <a href="#events"
+              class="sidebar-link block px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600">事件类型</a>
+            <a href="#sse-mapping"
+              class="sidebar-link block px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600">SSE 映射</a>
+            <a href="#response-schema"
+              class="sidebar-link block px-3 py-2 text-slate-600 hover:bg-slate-50 hover:text-blue-600">响应结构</a>
+          </nav>
+          <div class="border-t border-slate-200 p-3 space-y-3">
+            <div>
+              <label for="sidebar-dify-api-url"
+                class="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">DIFY_API_URL</label>
+              <input id="sidebar-dify-api-url" type="text" value="https://api.dify.ai/v1"
+                class="w-full rounded-2xl border border-slate-300/80 bg-white/90 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+            </div>
+            <div>
+              <label for="sidebar-api-key"
+                class="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">API_KEY</label>
+              <input id="sidebar-api-key" type="text" value="app-xxxx"
+                class="w-full rounded-2xl border border-slate-300/80 bg-white/90 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+            </div>
+            <div>
+              <label for="sidebar-bot-type"
+                class="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">BOT_TYPE</label>
+              <select id="sidebar-bot-type"
+                class="w-full rounded-2xl border border-slate-300/80 bg-white/90 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                <option value="Chat">Chat</option>
+                <option value="Completion">Completion</option>
+                <option value="Workflow">Workflow</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div class="mb-4">
-          <p class="mb-2 font-medium">✔️ 示例：</p>
-          <div class="bg-gray-100 p-3 rounded-md font-mono text-sm overflow-x-auto">
-            Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat
-          </div>
-        </div>
-        <div class="mb-2 bg-blue-50 p-4 rounded-md border-l-4 border-blue-400">
-          <p><code class="font-mono bg-blue-100 px-1 py-0.5 rounded text-blue-800">model</code> 参数设置为 <code
-              class="font-mono bg-blue-100 px-1 py-0.5 rounded text-blue-800">dify</code></p>
-        </div>
-      </div>
+      </aside>
 
-      <div class="mt-6 mb-6">
-        <div
-          class="bg-gradient-to-r from-blue-50 to-gray-50 rounded-t-lg p-4 border border-gray-200 flex justify-between items-center">
-          <h4 class="font-bold text-gray-700">基础对话示例</h4>
-          <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">方式一</span>
-        </div>
-        <div class="bg-gray-900 text-gray-100 rounded-b-lg overflow-x-auto">
-          <pre class="p-4 text-sm font-mono leading-relaxed"><span class="text-pink-400">curl</span> http://localhost:3099/v1/chat/completions \
-  -H <span class="text-green-400">"Content-Type: application/json"</span> \
-  -H <span class="text-green-400">"Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat"</span> \
-  -X <span class="text-yellow-400">POST</span> \
-  -d <span class="text-green-400">'{
-    "model": "dify",
+      <div class="min-w-0 space-y-8">
+        <section id="overview" class="section-anchor doc-card">
+          <div class="border-b border-slate-200 px-6 py-5">
+            <div
+              class="mb-2 inline-flex items-center gap-2 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+              Unified Endpoint
+            </div>
+            <h1 class="text-3xl font-bold text-slate-950">发送统一 OpenAI 兼容消息</h1>
+            <p class="mt-4 max-w-5xl text-[15px] leading-8 text-slate-600">
+              当前系统只暴露一个统一入口 <code
+                class="rounded bg-slate-100 px-1.5 py-0.5 text-sm text-slate-900">POST /v1/chat/completions</code>。
+              网关会基于 <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm text-slate-900">Authorization</code> 与
+              <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm text-slate-900">model</code> 解析 Dify
+              配置，并自动路由到不同上游应用。
+            </p>
+          </div>
+          <div class="px-6 py-6 text-[15px] leading-8 text-slate-700">
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div class="metric-card p-4">
+                <div class="mb-2 font-semibold text-slate-950">文本生成型应用</div>
+                <div class="font-mono text-sm text-blue-700">/completion-messages</div>
+              </div>
+              <div class="metric-card p-4">
+                <div class="mb-2 font-semibold text-slate-950">对话型应用</div>
+                <div class="font-mono text-sm text-blue-700">/chat-messages</div>
+              </div>
+              <div class="metric-card p-4">
+                <div class="mb-2 font-semibold text-slate-950">工作流编排对话型应用</div>
+                <div class="font-mono text-sm text-blue-700">/chat-messages</div>
+              </div>
+              <div class="metric-card p-4">
+                <div class="mb-2 font-semibold text-slate-950">Workflow 应用</div>
+                <div class="font-mono text-sm text-blue-700">/workflows/run</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="auth" class="section-anchor doc-card">
+          <div class="border-b border-slate-200 px-6 py-4">
+            <h2 class="text-2xl font-bold text-slate-950">唯一鉴权规范</h2>
+          </div>
+          <div class="grid gap-0 lg:grid-cols-2">
+            <div class="border-b border-slate-200 px-6 py-5 lg:border-b-0 lg:border-r">
+              <div class="mb-2 text-sm font-semibold text-slate-900">Authorization</div>
+              <div class="font-mono text-sm leading-7 text-blue-700">Bearer &lt;DIFY_API_URL&gt;</div>
+              <p class="mt-3 text-sm leading-7 text-slate-600">
+                必须传 Dify API 基础地址，例如：<code id="auth-dify-api-url"
+                  class="font-mono text-blue-700">https://api.dify.ai/v1</code>
+              </p>
+            </div>
+            <div class="px-6 py-5">
+              <div class="mb-2 text-sm font-semibold text-slate-900">model</div>
+              <div class="font-mono text-sm leading-7 text-blue-700">dify|BOT_TYPE|API_KEY</div>
+              <p class="mt-3 text-sm leading-7 text-slate-600">
+                BOT_TYPE 只允许 <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Completion</code>、<code
+                  class="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Chat</code>、<code
+                  class="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Workflow</code>。
+                API_KEY 例如：<code id="auth-api-key" class="font-mono text-blue-700">app-xxxx</code>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="routing" class="section-anchor doc-card">
+          <div class="border-b border-slate-200 px-6 py-4">
+            <h2 class="text-2xl font-bold text-slate-950">四类应用映射</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>应用类型</th>
+                  <th>model</th>
+                  <th>上游路径</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>文本生成型应用</td>
+                  <td><code class="font-mono text-blue-700">dify|Completion|API_KEY</code></td>
+                  <td><code class="font-mono">/completion-messages</code></td>
+                  <td>优先消费 <code class="font-mono text-xs">prompt</code>，否则提取最后一条消息文本。</td>
+                </tr>
+                <tr>
+                  <td>对话型应用</td>
+                  <td><code class="font-mono text-blue-700">dify|Chat|API_KEY</code></td>
+                  <td><code class="font-mono">/chat-messages</code></td>
+                  <td>优先使用 <code class="font-mono text-xs">query</code>，其次 <code
+                      class="font-mono text-xs">prompt</code>。</td>
+                </tr>
+                <tr>
+                  <td>工作流编排对话型应用</td>
+                  <td><code class="font-mono text-blue-700">dify|Chat|API_KEY</code></td>
+                  <td><code class="font-mono">/chat-messages</code></td>
+                  <td>仍走 Chat 路径，但会产生更丰富的 workflow 事件并透传到 <code class="font-mono text-xs">x_dify</code>。</td>
+                </tr>
+                <tr>
+                  <td>Workflow 应用</td>
+                  <td><code class="font-mono text-blue-700">dify|Workflow|API_KEY</code></td>
+                  <td><code class="font-mono">/workflows/run</code> 或 <code
+                      class="font-mono">/workflows/{workflow_id}/run</code></td>
+                  <td>支持 streaming 与 blocking，两者都映射回统一 OpenAI 外层结构。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="request-schema" class="section-anchor doc-card">
+          <div class="border-b border-slate-200 px-6 py-5">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div class="min-w-0">
+                <h2 class="text-2xl font-bold text-slate-950">请求 Schema</h2>
+                <div id="request-card-description" class="mt-3 max-w-4xl text-sm leading-7 text-slate-600">
+                  文本生成型应用，请求最终会路由到 <code class="font-mono text-xs">/completion-messages</code>。
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-3 xl:justify-end">
+                <button type="button"
+                  class="request-tab border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+                  data-card="Completion">Completion</button>
+                <button type="button"
+                  class="request-tab border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                  data-card="Chat">Chat</button>
+                <button type="button"
+                  class="request-tab border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                  data-card="AdvancedChat">工作流编排对话型应用</button>
+                <button type="button"
+                  class="request-tab border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                  data-card="Workflow">Workflow</button>
+              </div>
+            </div>
+          </div>
+          <div class="overflow-x-auto border-b border-slate-200">
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>字段</th>
+                  <th>类型</th>
+                  <th>必填</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody id="request-fields-body">
+                <tr>
+                  <td><code class="font-mono">model</code></td>
+                  <td>string</td>
+                  <td>是</td>
+                  <td>固定格式 <code class="font-mono text-xs">dify|Completion|API_KEY</code>。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="border-b border-slate-200 px-6 py-5">
+            <div class="flex flex-wrap items-center gap-5">
+              <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input id="toggle-stream" type="checkbox" checked
+                  class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                <span>stream</span>
+              </label>
+              <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input id="toggle-include-files" type="checkbox" checked
+                  class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                <span>files</span>
+              </label>
+              <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input id="toggle-include-messages" type="checkbox" checked
+                  class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                <span>messages.image_url</span>
+              </label>
+              <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input id="toggle-include-variable" type="checkbox" checked
+                  class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                <span>variable</span>
+              </label>
+            </div>
+            <div class="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm leading-7 text-slate-700">
+              <div class="font-semibold text-slate-900">变量透传说明</div>
+              <div class="mt-1">
+                顶层 <code class="font-mono text-xs">variable</code> 会被直接映射到 Dify <code class="font-mono text-xs">inputs</code>。
+                可使用 <code class="font-mono text-xs">input_*</code>、<code class="font-mono text-xs">output_*</code>、<code class="font-mono text-xs">custom_*</code>、<code class="font-mono text-xs">system_*</code>、<code class="font-mono text-xs">user_*</code>
+                等自定义变量名，不做特殊解析、不改名、不分组，最终都会随 <code class="font-mono text-xs">variable</code> 一起原样透传。注意需要先在 Dify 开始节点中新增对应的段落类型输入字段。
+              </div>
+            </div>
+          </div>
+          <div class="grid gap-6 px-6 py-6 xl:grid-cols-2">
+            <div class="soft-panel p-4">
+              <div class="code-window">
+                <div class="code-window-bar">
+                  <div class="window-dots">
+                    <span class="window-dot red"></span>
+                    <span class="window-dot yellow"></span>
+                    <span class="window-dot green"></span>
+                  </div>
+                  <div class="window-title">Request Body</div>
+                  <button id="copy-request-button" type="button" class="copy-button" aria-label="复制 Request Body" title="复制 Request Body" data-copy-target="request-schema-code">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                </div>
+                <div class="code-scroll">
+                  <pre class="language-json"><code id="request-schema-code" class="language-json">{
+  "model": "dify|Completion|app-xxxx",
+  "stream": true,
+  "response_mode": "streaming",
+  "user": "demo-user",
+  "prompt": "请把下面内容翻译成英文：今天天气很好。"
+}</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="soft-panel p-4">
+              <div class="code-window">
+                <div class="code-window-bar">
+                  <div class="window-dots">
+                    <span class="window-dot red"></span>
+                    <span class="window-dot yellow"></span>
+                    <span class="window-dot green"></span>
+                  </div>
+                  <div class="window-title">cURL</div>
+                  <button id="copy-curl-button" type="button" class="copy-button" aria-label="复制 cURL" title="复制 cURL" data-copy-target="curl-code">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                </div>
+                <div class="code-scroll">
+                  <pre class="language-bash"><code id="curl-code" class="language-bash">curl 'http://127.0.0.1:3099/v1/chat/completions' \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer https://api.dify.ai/v1' \
+  --data '{
+    "model": "dify|Completion|app-xxxx",
     "stream": true,
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
+    "response_mode": "streaming",
+    "user": "demo-user",
+    "prompt": "请把下面内容翻译成英文：今天天气很好。"
+  }'</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="events" class="section-anchor doc-card">
+          <div class="border-b border-slate-200 px-6 py-4">
+            <h2 class="text-2xl font-bold text-slate-950">事件类型</h2>
+          </div>
+          <div class="border-b border-slate-200 px-6 py-5 text-sm leading-7 text-slate-600">
+            下面不是事件列表表格，而是每一种 Dify SSE 事件的严格对象示例。所有原始事件最终都会进入 <code
+              class="font-mono text-xs">x_dify.raw_event</code>，部分事件还会同时参与 OpenAI 文本 delta 映射。
+          </div>
+          <div class="event-grid" id="event-schema-list">
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="mb-2 flex items-center justify-between gap-4">
+                  <div>
+                    <div class="text-base font-semibold text-slate-900"><code class="font-mono">message</code></div>
+                    <div class="text-sm text-slate-500">Completion / Chat 文本事件</div>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">message</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "message",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "answer": "Hello world",
+  "created_at": 1710000000,
+  "metadata": {
+    "usage": {
+      "prompt_tokens": 12,
+      "completion_tokens": 8,
+      "total_tokens": 20
+    }
+  }
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">agent_message</code></div>
+                <div class="mb-2 text-sm text-slate-500">Chat / 工作流编排对话型应用文本事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">agent_message</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "agent_message",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "answer": "这是 Agent 生成的回复片段。",
+  "created_at": 1710000001
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">message_replace</code></div>
+                <div class="mb-2 text-sm text-slate-500">替换型文本事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">message_replace</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "message_replace",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "answer": "这是用于替换先前内容的文本。",
+  "created_at": 1710000002
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">text_chunk</code></div>
+                <div class="mb-2 text-sm text-slate-500">Completion / Chat / Workflow 通用文本分片</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">text_chunk</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "text_chunk",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "text": "这是一个增量文本分片",
+  "created_at": 1710000003
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">message_file</code></div>
+                <div class="mb-2 text-sm text-slate-500">文件事件，仅透传到 x_dify</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">message_file</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "message_file",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "file": {
+    "id": "file-xxx",
+    "type": "image",
+    "url": "https://example.com/result.png",
+    "belongs_to": "assistant"
+  },
+  "created_at": 1710000004
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">agent_thought</code></div>
+                <div class="mb-2 text-sm text-slate-500">Agent 思考过程事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">agent_thought</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "agent_thought",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "thought": "我需要先检索知识库，再总结答案。",
+  "position": 1,
+  "created_at": 1710000005
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">tts_message</code></div>
+                <div class="mb-2 text-sm text-slate-500">音频分片事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">tts_message</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "tts_message",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "audio": "base64-audio-chunk",
+  "created_at": 1710000006
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">tts_message_end</code></div>
+                <div class="mb-2 text-sm text-slate-500">音频结束事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">tts_message_end</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "tts_message_end",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "created_at": 1710000007
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">workflow_started</code>
+                </div>
+                <div class="mb-2 text-sm text-slate-500">工作流开始事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">workflow_started</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "workflow_started",
+  "task_id": "task-xxx",
+  "workflow_run_id": "wf-xxx",
+  "data": {
+    "id": "wf-xxx",
+    "workflow_id": "workflow-123",
+    "status": "running",
+    "created_at": 1710000008
+  }
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">node_started</code></div>
+                <div class="mb-2 text-sm text-slate-500">工作流节点开始</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">node_started</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "node_started",
+  "task_id": "task-xxx",
+  "workflow_run_id": "wf-xxx",
+  "data": {
+    "node_id": "node-1",
+    "node_type": "llm",
+    "title": "总结节点",
+    "index": 1,
+    "predecessor_node_id": null,
+    "created_at": 1710000009
+  }
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">node_finished</code></div>
+                <div class="mb-2 text-sm text-slate-500">工作流节点完成</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">node_finished</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "node_finished",
+  "task_id": "task-xxx",
+  "workflow_run_id": "wf-xxx",
+  "data": {
+    "node_id": "node-1",
+    "node_type": "llm",
+    "title": "总结节点",
+    "status": "succeeded",
+    "elapsed_time": 1.28,
+    "outputs": {
+      "text": "节点产出的文本结果"
+    },
+    "finished_at": 1710000010
+  }
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">node_retry</code></div>
+                <div class="mb-2 text-sm text-slate-500">工作流节点重试</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">node_retry</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "node_retry",
+  "task_id": "task-xxx",
+  "workflow_run_id": "wf-xxx",
+  "data": {
+    "node_id": "node-1",
+    "node_type": "llm",
+    "title": "总结节点",
+    "retry_index": 1,
+    "error": "upstream timeout",
+    "created_at": 1710000011
+  }
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">workflow_finished</code>
+                </div>
+                <div class="mb-2 text-sm text-slate-500">工作流结束，可携带最终 outputs</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">workflow_finished</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "workflow_finished",
+  "task_id": "task-xxx",
+  "workflow_run_id": "wf-xxx",
+  "data": {
+    "id": "wf-xxx",
+    "workflow_id": "workflow-123",
+    "status": "succeeded",
+    "outputs": {
+      "text": "这是最终工作流输出",
+      "result": "structured-output"
+    },
+    "elapsed_time": 3.42,
+    "finished_at": 1710000012
+  }
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">message_end</code></div>
+                <div class="mb-2 text-sm text-slate-500">消息结束事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">message_end</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "message_end",
+  "task_id": "task-xxx",
+  "message_id": "msg-xxx",
+  "conversation_id": "conv-xxx",
+  "metadata": {
+    "usage": {
+      "prompt_tokens": 12,
+      "completion_tokens": 8,
+      "total_tokens": 20
+    }
+  },
+  "created_at": 1710000013
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">ping</code></div>
+                <div class="mb-2 text-sm text-slate-500">保活事件</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">ping</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "ping"
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="event-card">
+              <div class="px-5 pt-5">
+                <div class="text-base font-semibold text-slate-900"><code class="font-mono">error</code></div>
+                <div class="mb-2 text-sm text-slate-500">错误事件，最终会映射为 OpenAI 错误输出</div>
+              </div>
+              <div class="px-5 pb-5">
+                <div class="code-window">
+                  <div class="code-window-bar">
+                    <div class="window-dots"><span class="window-dot red"></span><span
+                        class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                    <div class="window-title">error</div>
+                    <div class="w-[72px]"></div>
+                  </div>
+                  <div class="code-scroll">
+                    <pre class="language-json"><code class="language-json">{
+  "event": "error",
+  "task_id": "task-xxx",
+  "message": "upstream service unavailable",
+  "status": 503,
+  "code": "service_unavailable"
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="sse-mapping" class="section-anchor doc-card">
+          <div class="border-b border-slate-200 px-6 py-4">
+            <h2 class="text-2xl font-bold text-slate-950">SSE 映射规则</h2>
+          </div>
+          <div class="px-6 py-6 text-sm leading-8 text-slate-700">
+            <ul class="space-y-3">
+              <li><strong>Completion：</strong><code class="font-mono text-xs">message</code> / <code
+                  class="font-mono text-xs">agent_message</code> / <code class="font-mono text-xs">text_chunk</code> /
+                <code class="font-mono text-xs">message_replace</code> 输出文本 delta；<code
+                  class="font-mono text-xs">message_end</code> 输出 stop chunk。</li>
+              <li><strong>Chat / Advanced Chat：</strong>文本事件输出 <code
+                  class="font-mono text-xs">choices[0].delta.content</code>；非文本事件只透传 <code
+                  class="font-mono text-xs">x_dify</code>。</li>
+              <li><strong>Workflow：</strong><code class="font-mono text-xs">text_chunk</code> 输出文本 delta；<code
+                  class="font-mono text-xs">workflow_finished</code> 若可解析最终 outputs，则额外输出最终文本 chunk。</li>
+              <li><strong>错误处理：</strong><code class="font-mono text-xs">error</code> 会先保留到 <code
+                  class="font-mono text-xs">x_dify</code>，再输出 OpenAI 错误行，最后结束流。</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="response-schema" class="section-anchor doc-card">
+          <div class="border-b border-slate-200 px-6 py-4">
+            <h2 class="text-2xl font-bold text-slate-950">响应结构</h2>
+          </div>
+          <div class="grid gap-6 px-6 py-6 xl:grid-cols-2">
+            <div class="soft-panel p-4">
+              <div class="panel-header">
+                <div class="text-base font-semibold text-slate-900">OpenAI 兼容响应</div>
+              </div>
+              <div class="code-window">
+                <div class="code-window-bar">
+                  <div class="window-dots"><span class="window-dot red"></span><span
+                      class="window-dot yellow"></span><span class="window-dot green"></span></div>
+                  <div class="window-title">Response JSON</div>
+                  <div class="w-[72px]"></div>
+                </div>
+                <div class="code-scroll">
+                  <pre class="language-json"><code id="response-schema-code" class="language-json">{
+  "id": "chatcmpl-6a3d4283-5c77-4300-b7d9-4d6686e8df0c",
+  "object": "chat.completion",
+  "created": 1776284129,
+  "model": "dify|Chat|app-xxxx",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "你好，我是一个可以继续上下文的对话助手。"
       },
-      {
-        "role": "user",
-        "content": "你好"
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 18,
+    "completion_tokens": 16,
+    "total_tokens": 34
+  },
+  "system_fingerprint": "fp_2f57f81c11",
+  "x_dify": {
+    "event": "message",
+    "conversation_id": "fa2f6006-934c-40f8-bccb-339ae1f045aa",
+    "metadata": {
+      "usage": {
+        "prompt_tokens": 18,
+        "completion_tokens": 16,
+        "total_tokens": 34
       }
-    ]
-  }'</span></pre>
-        </div>
-      </div>
-
-      <div class="mb-8">
-        <div
-          class="bg-gradient-to-r from-purple-50 to-gray-50 rounded-t-lg p-4 border border-gray-200 flex justify-between items-center">
-          <h4 class="font-bold text-gray-700">带图片的对话示例</h4>
-          <span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">图像支持</span>
-        </div>
-        <div class="bg-gray-900 text-gray-100 rounded-b-lg overflow-x-auto">
-          <pre class="p-4 text-sm font-mono leading-relaxed"><span class="text-pink-400">curl</span> http://localhost:3099/v1/chat/completions \
-  -H <span class="text-green-400">"Content-Type: application/json"</span> \
-  -H <span class="text-green-400">"Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat"</span> \
-  -X <span class="text-yellow-400">POST</span> \
-  -d <span class="text-green-400">'{
-    "model": "dify",
-    "stream": true,
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          "请分析这张图片。",
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "https://example.com/image.jpg"
-            }
-          }
-        ]
-      }
-    ]
-  }'</span></pre>
-        </div>
-      </div>
-
-      <!-- 方式二 -->
-      <div class="bg-white rounded-lg shadow-md p-6 mb-8 hover:shadow-lg transition-shadow duration-300">
-        <h3 class="text-xl font-semibold text-indigo-700 mb-4 flex items-center">
-          <i class="fas fa-key mr-2"></i>方式二：Authorization Header 传递 API_KEY，model 参数传递其他配置
-        </h3>
-        <div class="mb-4">
-          <p class="mb-2 font-medium">✔️ Authorization Header 格式：</p>
-          <div class="bg-gray-100 p-3 rounded-md font-mono text-sm overflow-x-auto">
-            Authorization: Bearer API_KEY
+    },
+    "raw_event": {
+      "event": "message"
+    }
+  }
+}</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="soft-panel overflow-hidden">
+              <div class="border-b border-slate-200 px-5 py-4 text-base font-semibold text-slate-900">字段说明</div>
+              <div class="overflow-x-auto">
+                <table class="doc-table">
+                  <thead>
+                    <tr>
+                      <th>字段</th>
+                      <th>类型</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code class="font-mono">id</code></td>
+                      <td>string</td>
+                      <td>OpenAI 风格响应 ID。</td>
+                    </tr>
+                    <tr>
+                      <td><code class="font-mono">object</code></td>
+                      <td>string</td>
+                      <td>非流式时通常为 <code class="font-mono text-xs">chat.completion</code>，流式时为 <code
+                          class="font-mono text-xs">chat.completion.chunk</code>。</td>
+                    </tr>
+                    <tr>
+                      <td><code class="font-mono">model</code></td>
+                      <td>string</td>
+                      <td>透传展示当前请求的 model 配置。</td>
+                    </tr>
+                    <tr>
+                      <td><code class="font-mono">choices</code></td>
+                      <td>array</td>
+                      <td>兼容 OpenAI 的响应 choices。</td>
+                    </tr>
+                    <tr>
+                      <td><code class="font-mono">usage</code></td>
+                      <td>object</td>
+                      <td>根据 Dify metadata.usage 映射出的 token 统计。</td>
+                    </tr>
+                    <tr>
+                      <td><code class="font-mono">x_dify</code></td>
+                      <td>object</td>
+                      <td>扩展字段，保留 Dify 原始事件、元数据与上下文信息。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="mb-4">
-          <p class="mb-2 font-medium">✔️ model 参数格式：</p>
-          <div class="bg-gray-100 p-3 rounded-md font-mono text-sm overflow-x-auto">
-            "model": "dify|BOT_TYPE|DIFY_API_URL|INPUT_VARIABLE|OUTPUT_VARIABLE"
-          </div>
-        </div>
-      </div>
+        </section>
 
-      <div class="mb-6">
-        <div
-          class="bg-gradient-to-r from-indigo-50 to-gray-50 rounded-t-lg p-4 border border-gray-200 flex justify-between items-center">
-          <h4 class="font-bold text-gray-700">基础对话示例</h4>
-          <span class="text-xs px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full">方式二</span>
-        </div>
-        <div class="bg-gray-900 text-gray-100 rounded-b-lg overflow-x-auto">
-          <pre class="p-4 text-sm font-mono leading-relaxed"><span class="text-pink-400">curl</span> http://localhost:3099/v1/chat/completions \
-  -H <span class="text-green-400">"Content-Type: application/json"</span> \
-  -H <span class="text-green-400">"Authorization: Bearer app-xxxx"</span> \
-  -X <span class="text-yellow-400">POST</span> \
-  -d <span class="text-green-400">'{  
-    "model": "dify|Chat|https://cloud.dify.ai/v1",
-    "stream": true,
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
-      },
-      {
-        "role": "user",
-        "content": "你好"
-      }
-    ]
-  }'</span></pre>
-        </div>
       </div>
+    </div>
+  </main>
 
-      <div class="mb-8">
-        <div
-          class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-t-lg p-4 border border-gray-200 flex justify-between items-center">
-          <h4 class="font-bold text-gray-700">带图片的对话示例</h4>
-          <span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">图像支持</span>
-        </div>
-        <div class="bg-gray-900 text-gray-100 rounded-b-lg overflow-x-auto">
-          <pre class="p-4 text-sm font-mono leading-relaxed"><span class="text-pink-400">curl</span> http://localhost:3099/v1/chat/completions \
-  -H <span class="text-green-400">"Content-Type: application/json"</span> \
-  -H <span class="text-green-400">"Authorization: Bearer app-xxxx"</span> \
-  -X <span class="text-yellow-400">POST</span> \
-  -d <span class="text-green-400">'{  
-    "model": "dify|Chat|https://cloud.dify.ai/v1",
-    "stream": true,
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          "请分析这张图片。",
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "https://example.com/image.jpg"
-            }
-          }
-        ]
-      }
-    ]
-  }'</span></pre>
-        </div>
-      </div>
+  <footer class="site-footer">
+    <span>© <span id="copyright-year"></span> ORENCE. MIT License.</span>
+  </footer>
 
-      <!-- 方式三 -->
-      <div class="bg-white rounded-lg shadow-md p-6 mb-8 hover:shadow-lg transition-shadow duration-300">
-        <h3 class="text-xl font-semibold text-teal-700 mb-4 flex items-center">
-          <i class="fas fa-key mr-2"></i>方式三：Authorization Header 传递 DIFY_API_URL，model 参数传阒其他配置
-        </h3>
-        <div class="mb-4">
-          <p class="mb-2 font-medium">✔️ Authorization Header 格式：</p>
-          <div class="bg-gray-100 p-3 rounded-md font-mono text-sm overflow-x-auto">
-            Authorization: Bearer DIFY_API_URL
-          </div>
-        </div>
-        <div class="mb-4">
-          <p class="mb-2 font-medium">✔️ model 参数格式：</p>
-          <div class="bg-gray-100 p-3 rounded-md font-mono text-sm overflow-x-auto">
-            "model": "dify|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE"
-          </div>
-        </div>
-      </div>
-
-      <div class="mb-6">
-        <div
-          class="bg-gradient-to-r from-teal-50 to-gray-50 rounded-t-lg p-4 border border-gray-200 flex justify-between items-center">
-          <h4 class="font-bold text-gray-700">基础对话示例</h4>
-          <span class="text-xs px-2 py-1 bg-teal-100 text-teal-800 rounded-full">方式三</span>
-        </div>
-        <div class="bg-gray-900 text-gray-100 rounded-b-lg overflow-x-auto">
-          <pre class="p-4 text-sm font-mono leading-relaxed"><span class="text-pink-400">curl</span> http://localhost:3099/v1/chat/completions \
-  -H <span class="text-green-400">"Content-Type: application/json"</span> \
-  -H <span class="text-green-400">"Authorization: Bearer https://cloud.dify.ai/v1"</span> \
-  -X <span class="text-yellow-400">POST</span> \
-  -d <span class="text-green-400">'{  
-    "model": "dify|app-xxxx|Chat",
-    "stream": true,
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
-      },
-      {
-        "role": "user",
-        "content": "你好"
-      }
-    ]
-  }'</span></pre>
-        </div>
-      </div>
-
-      <div class="mb-8">
-        <div
-          class="bg-gradient-to-r from-purple-50 to-teal-50 rounded-t-lg p-4 border border-gray-200 flex justify-between items-center">
-          <h4 class="font-bold text-gray-700">带图片的对话示例</h4>
-          <span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">图像支持</span>
-        </div>
-        <div class="bg-gray-900 text-gray-100 rounded-b-lg overflow-x-auto">
-          <pre class="p-4 text-sm font-mono leading-relaxed"><span class="text-pink-400">curl</span> http://localhost:3099/v1/chat/completions \
-  -H <span class="text-green-400">"Content-Type: application/json"</span> \
-  -H <span class="text-green-400">"Authorization: Bearer https://cloud.dify.ai/v1"</span> \
-  -X <span class="text-yellow-400">POST</span> \
-  -d <span class="text-green-400">'{  
-    "model": "dify|app-xxxx|Chat",
-    "stream": true,
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          "请分析这张图片。",
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "https://example.com/image.jpg"
-            }
-          }
-        ]
-      }
-    ]
-  }'</span></pre>
-        </div>
-      </div>
-    </section>
-
-    <!-- 功能特性区域 -->
-    <section class="my-16">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-          <div class="text-blue-500 mb-4 text-3xl">
-            <i class="fas fa-exchange-alt"></i>
-          </div>
-          <h3 class="text-lg font-semibold mb-2">接口转换</h3>
-          <p class="text-gray-600">将 Dify API 无缝转换为 OpenAI API，兼容各种 OpenAI 客户端</p>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-          <div class="text-indigo-500 mb-4 text-3xl">
-            <i class="fas fa-image"></i>
-          </div>
-          <h3 class="text-lg font-semibold mb-2">多模态支持</h3>
-          <p class="text-gray-600">支持图像、文档、音频和视频等多种类型文件处理</p>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
-          <div class="text-green-500 mb-4 text-3xl">
-            <i class="fas fa-robot"></i>
-          </div>
-          <h3 class="text-lg font-semibold mb-2">多种应用类型</h3>
-          <p class="text-gray-600">支持 Chat、Completion、Workflow 等不同类型的 Dify 应用</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 页脚区域 -->
-    <footer class="mt-20 pt-10 border-t border-gray-200 text-gray-600">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-        <div>
-          <h3 class="text-lg font-semibold mb-4 flex items-center">
-            <i class="fas fa-exchange-alt mr-2 text-blue-500"></i>Dify2OpenAI
-          </h3>
-          <p class="text-sm text-gray-500">将 Dify 应用程序转换为 OpenAI API 接口的网关服务</p>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold mb-4">快速链接</h3>
-          <ul class="space-y-2">
-            <li><a href="#config" class="text-gray-500 hover:text-blue-500 transition-colors flex items-center"><i
-                  class="fas fa-cog mr-2"></i>配置参数</a></li>
-            <li><a href="#access" class="text-gray-500 hover:text-blue-500 transition-colors flex items-center"><i
-                  class="fas fa-plug mr-2"></i>接入方式</a></li>
-          </ul>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold mb-4">资源链接</h3>
-          <ul class="space-y-2">
-            <li><a href="https://github.com/onenov/Dify2OpenAI"
-                class="text-gray-500 hover:text-blue-500 transition-colors flex items-center"><i
-                  class="fab fa-github mr-2"></i>GitHub 仓库</a></li>
-            <li><a href="https://github.com/onenov/Dify2OpenAI/issues"
-                class="text-gray-500 hover:text-blue-500 transition-colors flex items-center"><i
-                  class="fas fa-bug mr-2"></i>问题反馈</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="flex flex-col sm:flex-row justify-between items-center border-t border-gray-200 pt-6">
-        <p class="text-sm">© 2025 Dify2OpenAI</p>
-        <p class="text-xs mt-2 text-gray-500">更新日期: 2025年4月5日</p>
-      </div>
-    </footer>
-
-    <!-- 回到顶部按钮 -->
-    <a href="#" id="backToTop"
-      class="fixed bottom-6 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors duration-300 opacity-0 transform scale-90 hover:scale-100">
-      <i class="fas fa-arrow-up"></i>
-    </a>
-  </div> <!-- max-w-6xl mx-auto 容器结束 -->
-
-  <!-- 添加 JavaScript -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
   <script>
-    // 获取当前域名
-    const currentDomain = window.location.host;
+    const REQUEST_CARD_META = {
+      Completion: {
+        botType: 'Completion',
+        description: '文本生成型应用，请求最终会路由到 <code class="font-mono text-xs">/completion-messages</code>。',
+        fields: [
+          ['model', 'string', '是', '固定格式 <code class="font-mono text-xs">dify|Completion|API_KEY</code>。'],
+          ['stream', 'boolean', '否', 'OpenAI 兼容流式开关。'],
+          ['response_mode', 'string', '否', '<code class="font-mono text-xs">streaming</code> 或 <code class="font-mono text-xs">blocking</code>。'],
+          ['user', 'string', '是', '调用方用户标识。'],
+          ['prompt', 'string', '是', '主输入文本。'],
+          ['trace_id', 'string', '否', '请求链路追踪 ID。'],
+          ['variable', 'object', '否', '支持传递自定义变量，最终原样直传 Dify inputs；可使用 <code class="font-mono text-xs">input_*</code>、<code class="font-mono text-xs">output_*</code>、<code class="font-mono text-xs">custom_*</code>、<code class="font-mono text-xs">system_*</code>、<code class="font-mono text-xs">user_*</code> 等变量名。注意需要先在 Dify 开始节点中新增对应的段落类型输入字段。'],
+          ['files', 'array<string | object>', '否', '支持 URL / base64 / Dify 原生文件对象。'],
+          ['messages', 'array', '否', '可附带 OpenAI 风格消息，系统会提取文本与 image_url。'],
+        ],
+      },
+      Chat: {
+        botType: 'Chat',
+        description: '标准对话型应用，请求最终会路由到 <code class="font-mono text-xs">/chat-messages</code>。',
+        fields: [
+          ['model', 'string', '是', '固定格式 <code class="font-mono text-xs">dify|Chat|API_KEY</code>。'],
+          ['stream', 'boolean', '否', 'OpenAI 兼容流式开关。'],
+          ['response_mode', 'string', '否', '<code class="font-mono text-xs">streaming</code> 或 <code class="font-mono text-xs">blocking</code>。'],
+          ['user', 'string', '是', '调用方用户标识。'],
+          ['query', 'string', '条件必填', 'Chat 主输入字段。'],
+          ['conversation_id', 'string', '否', '连续对话上下文 ID。'],
+          ['trace_id', 'string', '否', '请求链路追踪 ID。'],
+          ['variable', 'object', '否', '支持传递自定义变量，最终原样直传 Dify inputs；可使用 <code class="font-mono text-xs">input_*</code>、<code class="font-mono text-xs">output_*</code>、<code class="font-mono text-xs">custom_*</code>、<code class="font-mono text-xs">system_*</code>、<code class="font-mono text-xs">user_*</code> 等变量名。注意需要先在 Dify 开始节点中新增对应的段落类型输入字段。'],
+          ['files', 'array<string | object>', '否', '支持 URL / base64 / Dify 原生文件对象。'],
+          ['messages', 'array', '否', '支持多个 <code class="font-mono text-xs">image_url</code> 自动并入 Dify files。'],
+        ],
+      },
+      AdvancedChat: {
+        botType: 'Chat',
+        description: '仍走 <code class="font-mono text-xs">/chat-messages</code>，但会返回更丰富的 workflow 事件，并严格透传到 <code class="font-mono text-xs">x_dify</code>。',
+        fields: [
+          ['model', 'string', '是', '固定格式 <code class="font-mono text-xs">dify|Chat|API_KEY</code>。'],
+          ['stream', 'boolean', '否', '建议开启，用于观察完整工作流事件。'],
+          ['response_mode', 'string', '否', '<code class="font-mono text-xs">streaming</code> 或 <code class="font-mono text-xs">blocking</code>。'],
+          ['user', 'string', '是', '调用方用户标识。'],
+          ['query', 'string', '条件必填', '工作流编排对话主输入。'],
+          ['conversation_id', 'string', '否', '连续对话上下文 ID。'],
+          ['trace_id', 'string', '否', '请求链路追踪 ID。'],
+          ['variable', 'object', '否', '支持传递自定义变量，最终原样直传 Dify inputs；可使用 <code class="font-mono text-xs">input_*</code>、<code class="font-mono text-xs">output_*</code>、<code class="font-mono text-xs">custom_*</code>、<code class="font-mono text-xs">system_*</code>、<code class="font-mono text-xs">user_*</code> 等变量名。注意需要先在 Dify 开始节点中新增对应的段落类型输入字段。'],
+          ['files', 'array<string | object>', '否', '支持 URL / base64 / Dify 原生文件对象。'],
+          ['messages', 'array', '否', '支持多个 <code class="font-mono text-xs">image_url</code> 自动并入 Dify files。'],
+        ],
+      },
+      Workflow: {
+        botType: 'Workflow',
+        description: 'Workflow 应用会路由到 <code class="font-mono text-xs">/workflows/run</code> 或 <code class="font-mono text-xs">/workflows/{workflow_id}/run</code>。',
+        fields: [
+          ['model', 'string', '是', '固定格式 <code class="font-mono text-xs">dify|Workflow|API_KEY</code>。'],
+          ['stream', 'boolean', '否', 'OpenAI 兼容流式开关。'],
+          ['response_mode', 'string', '否', '<code class="font-mono text-xs">streaming</code> 或 <code class="font-mono text-xs">blocking</code>。'],
+          ['user', 'string', '是', '调用方用户标识。'],
+          ['query', 'string', '条件必填', 'Workflow 主文本输入。'],
+          ['workflow_id', 'string', '否', '指定工作流 ID 时使用。'],
+          ['trace_id', 'string', '否', '请求链路追踪 ID。'],
+          ['variable', 'object', '否', '支持传递自定义变量，最终原样直传 Dify inputs；可使用 <code class="font-mono text-xs">input_*</code>、<code class="font-mono text-xs">output_*</code>、<code class="font-mono text-xs">custom_*</code>、<code class="font-mono text-xs">system_*</code>、<code class="font-mono text-xs">user_*</code> 等变量名。注意需要先在 Dify 开始节点中新增对应的段落类型输入字段。'],
+          ['files', 'array<string | object>', '否', '支持 URL / base64 / Dify 原生文件对象。'],
+          ['messages', 'array', '否', '支持多个 <code class="font-mono text-xs">image_url</code> 自动并入 Dify files。'],
+        ],
+      },
+    };
 
-    // 替换所有curl示例中的域名
-    function updateCurlExamples() {
-      const codeBlocks = document.querySelectorAll('pre');
-      codeBlocks.forEach(block => {
-        // 替换curl命令行中的域名 (包含着色标签的情况)
-        if (block.innerHTML.includes('<span class="text-pink-400">curl</span> http://localhost:3099')) {
-          block.innerHTML = block.innerHTML.replace(
-            /<span class="text-pink-400">curl<\/span> http:\/\/localhost:3099/g,
-            `<span class="text-pink-400">curl</span> http://${currentDomain}`
-          );
+    let currentRequestCard = 'Completion';
+
+    function getRequestBody(cardType, apiKey, options) {
+      const { streamEnabled, includeFiles, includeMessages, includeVariable } = options;
+      const meta = REQUEST_CARD_META[cardType];
+      const botType = meta.botType;
+      const isWorkflow = cardType === 'Workflow';
+      const isCompletion = cardType === 'Completion';
+      const isAdvancedChat = cardType === 'AdvancedChat';
+      const body = {
+        model: `dify|${botType}|${apiKey}`,
+        stream: streamEnabled,
+        response_mode: streamEnabled ? 'streaming' : 'blocking',
+        user: 'demo-user',
+      };
+
+      if (isCompletion) {
+        body.prompt = '请把下面内容翻译成英文：今天天气很好。';
+      } else if (isWorkflow) {
+        body.query = '请执行这个工作流任务，并逐步返回事件与最终结果。';
+        body.workflow_id = 'optional-workflow-id';
+      } else if (isAdvancedChat) {
+        body.query = '请执行编排式多步骤任务，并返回节点事件与最终结果。';
+        body.conversation_id = '';
+      } else {
+        body.query = '请继续这轮对话，并结合附件内容回答。';
+        body.conversation_id = '';
+      }
+
+      body.trace_id = 'trace-demo';
+
+      if (includeVariable) {
+        if (isCompletion) {
+          body.variable = { input_source_lang: 'zh-CN', output_target_lang: 'en', system_scene: 'translation', custom_tone: 'formal' };
+        } else if (isWorkflow || isAdvancedChat) {
+          body.variable = { input_task_type: 'generic', output_priority: 'normal', system_scene: 'workflow', custom_mode: 'orchestrated' };
+        } else {
+          body.variable = { input_topic: 'product_spec', output_locale: 'zh-CN', system_scene: 'chat', custom_style: 'concise' };
         }
+      }
 
-        // 在请求体内替换所有域名引用（保持HTML标签结构）
-        block.innerHTML = block.innerHTML.replace(
-          /http:\/\/localhost:3099\/v1\/chat\/completions/g,
-          `http://${currentDomain}/v1/chat/completions`
-        );
+      if (includeFiles) {
+        body.files = [
+          'https://example.com/a.png',
+          'https://example.com/b.txt',
+          'https://example.com/c.mp4',
+        ];
+      }
+
+      if (includeMessages) {
+        body.messages = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: isCompletion ? '请参考图片内容补充翻译语境。' : '请分析这些文件和图片。',
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: 'https://example.com/image-a.png',
+                },
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: 'https://example.com/image-b.webp',
+                },
+              },
+            ],
+          },
+        ];
+      }
+
+      return body;
+    }
+
+    function getResponseSchema(cardType, apiKey) {
+      const botType = REQUEST_CARD_META[cardType].botType;
+      const eventName = cardType === 'Workflow'
+        ? 'workflow_finished'
+        : cardType === 'Completion'
+          ? 'message'
+          : cardType === 'AdvancedChat'
+            ? 'workflow_finished'
+            : 'agent_message';
+      const content = cardType === 'Workflow'
+        ? '工作流已执行完成，以下是最终结果。'
+        : cardType === 'Completion'
+          ? 'The weather is very nice today.'
+          : cardType === 'AdvancedChat'
+            ? '编排式对话任务已完成，以下是最终总结。'
+            : '你好，我已经结合当前上下文继续回答。';
+
+      return {
+        id: 'chatcmpl-6a3d4283-5c77-4300-b7d9-4d6686e8df0c',
+        object: 'chat.completion',
+        created: 1776284129,
+        model: `dify|${botType}|${apiKey}`,
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content },
+            logprobs: null,
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 18, completion_tokens: 16, total_tokens: 34 },
+        system_fingerprint: 'fp_2f57f81c11',
+        x_dify: {
+          event: eventName,
+          conversation_id: 'fa2f6006-934c-40f8-bccb-339ae1f045aa',
+          metadata: { usage: { prompt_tokens: 18, completion_tokens: 16, total_tokens: 34 } },
+          raw_event: { event: eventName },
+        },
+      };
+    }
+
+    function renderRequestFieldTable(cardType) {
+      const tbody = document.getElementById('request-fields-body');
+      const description = document.getElementById('request-card-description');
+      const meta = REQUEST_CARD_META[cardType];
+      description.innerHTML = meta.description;
+      tbody.innerHTML = meta.fields.map(([name, type, required, desc]) => `
+        <tr>
+          <td><code class="font-mono">${name}</code></td>
+          <td>${type}</td>
+          <td>${required}</td>
+          <td>${desc}</td>
+        </tr>
+      `).join('');
+    }
+
+    function syncSidebarBotType(cardType) {
+      const mappedBotType = REQUEST_CARD_META[cardType].botType;
+      const botTypeSelect = document.getElementById('sidebar-bot-type');
+      if (botTypeSelect.value !== mappedBotType) {
+        botTypeSelect.value = mappedBotType;
+      }
+    }
+
+    function setActiveRequestCard(cardType) {
+      currentRequestCard = cardType;
+      document.querySelectorAll('.request-tab').forEach((button) => {
+        const isActive = button.dataset.card === cardType;
+        button.classList.toggle('border-blue-600', isActive);
+        button.classList.toggle('bg-blue-600', isActive);
+        button.classList.toggle('text-white', isActive);
+        button.classList.toggle('border-slate-300', !isActive);
+        button.classList.toggle('bg-white', !isActive);
+        button.classList.toggle('text-slate-700', !isActive);
       });
+      renderRequestFieldTable(cardType);
+      syncSidebarBotType(cardType);
+    }
 
-      // 运行一次Prism.js语法高亮
-      if (typeof Prism !== 'undefined') {
+    function cardTypeFromSidebarBotType(botType) {
+      if (botType === 'Completion') return 'Completion';
+      if (botType === 'Workflow') return 'Workflow';
+      return currentRequestCard === 'AdvancedChat' ? 'AdvancedChat' : 'Chat';
+    }
+
+    function getGatewayBaseUrl() {
+      return window.location.origin || 'http://127.0.0.1:3099';
+    }
+
+    function updateExamples() {
+      const difyApiUrl = document.getElementById('sidebar-dify-api-url').value.trim() || 'https://api.dify.ai/v1';
+      const apiKey = document.getElementById('sidebar-api-key').value.trim() || 'app-xxxx';
+      const gatewayBaseUrl = getGatewayBaseUrl();
+      const requestSchema = getRequestBody(currentRequestCard, apiKey, {
+        streamEnabled: document.getElementById('toggle-stream').checked,
+        includeFiles: document.getElementById('toggle-include-files').checked,
+        includeMessages: document.getElementById('toggle-include-messages').checked,
+        includeVariable: document.getElementById('toggle-include-variable').checked,
+      });
+      const responseSchema = getResponseSchema(currentRequestCard, apiKey);
+
+      document.getElementById('auth-dify-api-url').textContent = difyApiUrl;
+      document.getElementById('auth-api-key').textContent = apiKey;
+      document.getElementById('request-schema-code').textContent = JSON.stringify(requestSchema, null, 2);
+      document.getElementById('response-schema-code').textContent = JSON.stringify(responseSchema, null, 2);
+      document.getElementById('curl-code').textContent = `curl '${gatewayBaseUrl}/v1/chat/completions' \\
+  --request POST \\
+  --header 'Content-Type: application/json' \\
+  --header 'Authorization: Bearer ${difyApiUrl}' \\
+  --data '${JSON.stringify(requestSchema, null, 2)}'`;
+
+      if (window.Prism) {
         Prism.highlightAll();
       }
     }
 
-    // 添加可编辑字段的功能
-    function setupEditableFields() {
-      const editableFields = document.querySelectorAll('.editable');
+    function setupControls() {
+      document.querySelectorAll('#sidebar-dify-api-url, #sidebar-api-key').forEach((element) => {
+        element.addEventListener('input', updateExamples);
+      });
 
-      editableFields.forEach(field => {
-        // 加入编辑提示
-        field.setAttribute('title', '点击编辑参数，示例将自动更新');
+      document.getElementById('sidebar-bot-type').addEventListener('change', (event) => {
+        const nextCardType = cardTypeFromSidebarBotType(event.target.value);
+        setActiveRequestCard(nextCardType);
+        updateExamples();
+      });
 
-        // 在编辑时添加边框提示
-        field.addEventListener('focus', function () {
-          this.classList.add('ring-2', 'ring-blue-300');
+      document.querySelectorAll('#toggle-stream, #toggle-include-files, #toggle-include-messages, #toggle-include-variable').forEach((element) => {
+        element.addEventListener('change', updateExamples);
+      });
+
+      document.querySelectorAll('.request-tab').forEach((button) => {
+        button.addEventListener('click', () => {
+          setActiveRequestCard(button.dataset.card);
+          updateExamples();
         });
+      });
+    }
 
-        field.addEventListener('blur', function () {
-          // 移除边框
-          this.classList.remove('ring-2', 'ring-blue-300');
+    function setupCopyButton() {
+      const copyButtons = Array.from(document.querySelectorAll('.copy-button[data-copy-target]'));
+      if (!copyButtons.length) return;
 
-          // 更新示例中的对应值
-          const fieldId = this.id;
-          const fieldValue = this.textContent.trim();
+      copyButtons.forEach((copyButton) => {
+        const targetId = copyButton.getAttribute('data-copy-target');
+        const targetNode = targetId ? document.getElementById(targetId) : null;
+        if (!targetNode) return;
 
-          // 所有参数变更都触发更新
-          updateExamplesWithFieldValues();
-
-          // 通知用户已更新
-          showToast('参数已更新');
-        });
-
-        // 添加回车键处理
-        field.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            this.blur(); // 失去焦点触发更新
+        copyButton.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(targetNode.textContent);
+            copyButton.classList.add('copied');
+            copyButton.innerHTML = '<i class="fas fa-check"></i>';
+            window.setTimeout(() => {
+              copyButton.classList.remove('copied');
+              copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+            }, 1600);
+          } catch (error) {
+            copyButton.innerHTML = '<i class="fas fa-xmark"></i>';
+            window.setTimeout(() => {
+              copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+            }, 1600);
           }
         });
       });
     }
 
-    // 显示一个简单的提示消息
-    function showToast(message) {
-      // 移除任何已存在的提示
-      const existingToast = document.getElementById('toast');
-      if (existingToast) {
-        existingToast.remove();
-      }
+    function setupSidebarSpy() {
+      const links = Array.from(document.querySelectorAll('.sidebar-link'));
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
 
-      // 创建新提示
-      const toast = document.createElement('div');
-      toast.id = 'toast';
-      toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm shadow-lg opacity-0 transition-opacity duration-300';
-      toast.innerText = message;
-
-      document.body.appendChild(toast);
-
-      // 显示提示
-      setTimeout(() => {
-        toast.classList.replace('opacity-0', 'opacity-100');
-      }, 10);
-
-      // 2秒后隐藏提示
-      setTimeout(() => {
-        toast.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => {
-          toast.remove();
-        }, 300);
-      }, 2000);
-    }
-
-    // 更新示例中的值
-    function updateExamplesWithFieldValues() {
-      // 在开始前保存增强后的HTML
-      const codeBlocks = document.querySelectorAll('pre');
-      const originalHTML = Array.from(codeBlocks).map(block => block.innerHTML);
-
-      const difyApiUrl = document.getElementById('dify-api-url').textContent.trim();
-      const apiKey = document.getElementById('api-key').textContent.trim();
-      const botType = document.getElementById('bot-type').textContent.trim();
-      const inputVariable = document.getElementById('input-variable').textContent.trim();
-      const outputVariable = document.getElementById('output-variable').textContent.trim();
-
-      // 更新方式一的授权示例 - 示例格式
-      let authExample = document.querySelectorAll('.bg-gray-100');
-      authExample.forEach(example => {
-        if (example.textContent.includes('Authorization: Bearer') &&
-          example.textContent.includes('DIFY_API_URL|API_KEY|BOT_TYPE')) {
-          // 显示的示例参数
-          example.innerHTML = `Authorization: Bearer DIFY_API_URL|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE`;
-        } else if (example.textContent.includes('Authorization: Bearer') &&
-          example.textContent.includes('https://cloud.dify.ai/v1|app-xxxx|Chat') ||
-          example.textContent.includes(`${difyApiUrl}|${apiKey}|${botType}`)) {
-          // 实际示例
-          let varPart = '';
-          if (botType.toLowerCase() === 'workflow') {
-            varPart = `|${inputVariable}|${outputVariable}`;
-          }
-          example.innerHTML = `Authorization: Bearer ${difyApiUrl}|${apiKey}|${botType}${varPart}`;
-        }
-      });
-
-      // 更新方式一的curl示例
-      const method1Headers = document.querySelectorAll('pre');
-      method1Headers.forEach(pre => {
-        if (pre.innerHTML.includes('"Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat"')) {
-          let varPart = '';
-          if (botType.toLowerCase() === 'workflow') {
-            varPart = `|${inputVariable}|${outputVariable}`;
-          }
-          pre.innerHTML = pre.innerHTML.replace(
-            /"Authorization: Bearer [^"]+"/g,
-            `"Authorization: Bearer ${difyApiUrl}|${apiKey}|${botType}${varPart}"`
-          );
-        }
-      });
-
-      // 更新方式二的示例
-      authExample.forEach(example => {
-        // 更新 API_KEY 头部
-        if (example.textContent.includes('Authorization: Bearer API_KEY')) {
-          example.innerHTML = `Authorization: Bearer API_KEY`;
-        } else if (example.textContent.includes('Authorization: Bearer app-xxxx')) {
-          example.innerHTML = `Authorization: Bearer ${apiKey}`;
-        }
-
-        // 更新model参数格式
-        if (example.textContent.includes('"model": "dify|BOT_TYPE|DIFY_API_URL')) {
-          example.innerHTML = `"model": "dify|BOT_TYPE|DIFY_API_URL|INPUT_VARIABLE|OUTPUT_VARIABLE"`;
-        }
-      });
-
-      // 更新方式二的curl示例
-      const method2Headers = document.querySelectorAll('pre');
-      method2Headers.forEach(pre => {
-        if (pre.innerHTML.includes('"Authorization: Bearer app-xxxx"')) {
-          pre.innerHTML = pre.innerHTML.replace(
-            /"Authorization: Bearer [^"]+"/g,
-            `"Authorization: Bearer ${apiKey}"`
-          );
-        }
-
-        if (pre.innerHTML.includes('"model": "dify|Chat|https://cloud.dify.ai/v1"')) {
-          let varPart = '';
-          if (botType.toLowerCase() === 'workflow') {
-            varPart = `|${inputVariable}|${outputVariable}`;
-          }
-          pre.innerHTML = pre.innerHTML.replace(
-            /"model": "dify\|[^"\|]+\|[^"]+"/g,
-            `"model": "dify|${botType}|${difyApiUrl}${varPart}"`
-          );
-        }
-      });
-
-      // 更新方式三的示例
-      authExample.forEach(example => {
-        // 更新 DIFY_API_URL 头部
-        if (example.textContent.includes('Authorization: Bearer DIFY_API_URL')) {
-          example.innerHTML = `Authorization: Bearer DIFY_API_URL`;
-        } else if (example.textContent.includes('Authorization: Bearer https://cloud.dify.ai/v1') &&
-          !example.textContent.includes('|')) {
-          example.innerHTML = `Authorization: Bearer ${difyApiUrl}`;
-        }
-
-        // 更新model参数格式
-        if (example.textContent.includes('"model": "dify|API_KEY|BOT_TYPE')) {
-          example.innerHTML = `"model": "dify|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE"`;
-        }
-      });
-
-      // 更新方式三的curl示例
-      const method3Headers = document.querySelectorAll('pre');
-      method3Headers.forEach(pre => {
-        if (pre.innerHTML.includes('"Authorization: Bearer https://cloud.dify.ai/v1"') &&
-          pre.innerHTML.includes('"model": "dify|app-xxxx|Chat"')) {
-          pre.innerHTML = pre.innerHTML.replace(
-            /"Authorization: Bearer [^"]+"/g,
-            `"Authorization: Bearer ${difyApiUrl}"`
-          );
-
-          let varPart = '';
-          if (botType.toLowerCase() === 'workflow') {
-            varPart = `|${inputVariable}|${outputVariable}`;
-          }
-          pre.innerHTML = pre.innerHTML.replace(
-            /"model": "dify\|[^"\|]+\|[^"\|]+"/g,
-            `"model": "dify|${apiKey}|${botType}${varPart}"`
-          );
-        }
-      });
-
-      // 重新应用语法高亮
-      if (typeof Prism !== 'undefined') {
-        setTimeout(() => {
-          Prism.highlightAll();
-        }, 10);
-      }
-    }
-
-    // 平滑滚动到锚点
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const targetId = this.getAttribute('href');
-        const targetElement = document.querySelector(targetId);
-        if (targetElement) {
-          window.scrollTo({
-            top: targetElement.offsetTop - 80,
-            behavior: 'smooth'
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          links.forEach((link) => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
           });
-        }
-      });
-    });
+        });
+      }, { rootMargin: '-20% 0px -70% 0px', threshold: 0.01 });
 
-    // 显示/隐藏回到顶部按钮
-    const backToTopButton = document.getElementById('backToTop');
+      sections.forEach((section) => observer.observe(section));
+    }
 
-    window.addEventListener('scroll', function () {
-      if (window.scrollY > 300) {
-        backToTopButton.classList.remove('opacity-0');
-        backToTopButton.classList.add('opacity-100');
-      } else {
-        backToTopButton.classList.remove('opacity-100');
-        backToTopButton.classList.add('opacity-0');
+    document.addEventListener('DOMContentLoaded', () => {
+      const copyrightYear = document.getElementById('copyright-year');
+      if (copyrightYear) {
+        copyrightYear.textContent = String(new Date().getFullYear());
       }
-    });
 
-    // 添加返回顶部点击事件
-    backToTopButton.addEventListener('click', function (e) {
-      e.preventDefault();
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
-
-    // 页面加载完成后执行
-    document.addEventListener('DOMContentLoaded', function () {
-      // 先更新参数
-      setupEditableFields();
-      updateExamplesWithFieldValues();
-
-      // 再更新域名和运行Prism语法高亮
-      setTimeout(() => {
-        updateCurlExamples();
-
-        // 确保语法高亮已应用
-        if (typeof Prism !== 'undefined') {
-          Prism.highlightAll();
-        }
-      }, 100);
-
-      // 添加提示消息
-      const editableFields = document.querySelectorAll('.editable');
-      editableFields.forEach(field => {
-        field.setAttribute('title', '点击编辑参数，示例将自动更新');
-      });
+      setActiveRequestCard(currentRequestCard);
+      setupControls();
+      setupCopyButton();
+      setupSidebarSpy();
+      updateExamples();
     });
   </script>
 </body>

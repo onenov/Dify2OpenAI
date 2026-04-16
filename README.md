@@ -125,75 +125,52 @@ npm run pm2:monit
 
 ## 接入方式
 
-### 接入方式一：所有配置在 Authorization Header 中
+当前版本仅保留一种统一接入方式：
+
+- `Authorization` 只传 `DIFY_API_URL`
+- `model` 必须传 `dify|BOT_TYPE|API_KEY`
+
+### 统一鉴权格式
 
 **Authorization Header 格式：**
 
 ```
-Authorization: Bearer DIFY_API_URL|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE
-```
-
-- 所有配置信息都通过 Authorization Header 传递。
-- `model` 参数设置为 `dify`。
-
-**示例：**
-
-```bash
-Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat
-```
-
-### 接入方式二：Authorization Header 传递 API_KEY，model 参数传递其他配置
-
-**Authorization Header 格式：**
-
-```
-Authorization: Bearer API_KEY
+Authorization: Bearer <DIFY_API_URL>
 ```
 
 **`model` 参数格式：**
 
-```
-"model": "dify|BOT_TYPE|DIFY_API_URL|INPUT_VARIABLE|OUTPUT_VARIABLE"
+```json
+"model": "dify|BOT_TYPE|API_KEY"
 ```
 
-- Authorization Header 中只包含 `API_KEY`。
-- 其他配置信息通过请求体中的 `model` 参数传递。
+### BOT_TYPE 可选值
 
-**示例：**
+- `Completion`：文本生成型应用，最终路由到 `/completion-messages`
+- `Chat`：对话型应用，最终路由到 `/chat-messages`
+- `Workflow`：Workflow 应用，最终路由到 `/workflows/run`
+
+说明：工作流编排对话型应用同样通过 `BOT_TYPE=Chat` 接入，但会保留更完整的 Dify 原始事件流，并通过 `x_dify` 透传。
+
+### 统一示例
 
 ```bash
-Authorization: Bearer app-xxxx
-```
-
-```json
-"model": "dify|Chat|https://cloud.dify.ai/v1"
-```
-
-### 接入方式三：Authorization Header 传递 DIFY_API_URL，model 参数传递其他配置
-
-**Authorization Header 格式：**
-
-```
-Authorization: Bearer DIFY_API_URL
-```
-
-**`model` 参数格式：**
-
-```
-"model": "dify|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE"
-```
-
-- Authorization Header 中只包含 `DIFY_API_URL`。
-- 其他配置信息通过请求体中的 `model` 参数传递。
-
-**示例：**
-
-```bash
-Authorization: Bearer https://cloud.dify.ai/v1
-```
-
-```json
-"model": "dify|app-xxxx|Chat"
+curl http://localhost:3099/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
+  -X POST \
+  -d '{
+    "model": "dify|Chat|app-xxxx",
+    "stream": true,
+    "response_mode": "streaming",
+    "user": "demo-user",
+    "messages": [
+      {
+        "role": "user",
+        "content": "你好"
+      }
+    ]
+  }'
 ```
 
 ---
@@ -349,16 +326,16 @@ pm2 start ecosystem.config.cjs
 
 ### 基础对话
 
-#### 接入方式一
-
 ```bash
 curl http://localhost:3099/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
   -X POST \
   -d '{
-    "model": "dify",
+    "model": "dify|Chat|app-xxxx",
     "stream": true,
+    "response_mode": "streaming",
+    "user": "demo-user",
     "messages": [
       {
         "role": "system",
@@ -372,127 +349,73 @@ curl http://localhost:3099/v1/chat/completions \
   }'
 ```
 
-#### 接入方式二
+### 固定 variable 包裹对象
 
 ```bash
 curl http://localhost:3099/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer app-xxxx" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
   -X POST \
   -d '{
-    "model": "dify|Chat|https://cloud.dify.ai/v1",
+    "model": "dify|Workflow|app-xxxx",
     "stream": true,
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
-      },
-      {
-        "role": "user",
-        "content": "你好"
-      }
+    "response_mode": "streaming",
+    "user": "demo-user",
+    "query": "请执行这个任务",
+    "variable": {
+      "task_type": "generic",
+      "priority": "normal"
+    }
+  }'
+```
+
+### 顶层 files 字符串数组
+
+```bash
+curl http://localhost:3099/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
+  -X POST \
+  -d '{
+    "model": "dify|Chat|app-xxxx",
+    "stream": true,
+    "response_mode": "streaming",
+    "user": "abc-123",
+    "query": "What are the specs of the iPhone 13 Pro Max?",
+    "conversation_id": "",
+    "variable": {},
+    "files": [
+      "https://example.com/a.png",
+      "https://example.com/b.txt",
+      "https://example.com/c.mp4"
     ]
   }'
 ```
 
-#### 接入方式三
+### 兼容 messages[].content[].image_url
 
 ```bash
 curl http://localhost:3099/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
   -X POST \
   -d '{
-    "model": "dify|app-xxxx|Chat",
+    "model": "dify|Chat|app-xxxx",
     "stream": true,
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
-      },
-      {
-        "role": "user",
-        "content": "你好"
-      }
-    ]
-  }'
-```
-
-### 带图片的对话
-
-#### 接入方式一
-
-```bash
-curl http://localhost:3099/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat" \
-  -X POST \
-  -d '{
-    "model": "dify",
-    "stream": true,
+    "response_mode": "streaming",
+    "user": "abc-123",
     "messages": [
       {
         "role": "user",
         "content": [
-          "请分析这张图片。",
+          {
+            "type": "text",
+            "text": "What are the specs of the iPhone 13 Pro Max?"
+          },
           {
             "type": "image_url",
             "image_url": {
-              "url": "https://example.com/image.jpg"
-            }
-          }
-        ]
-      }
-    ]
-  }'
-```
-
-#### 接入方式二
-
-```bash
-curl http://localhost:3099/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer app-xxxx" \
-  -X POST \
-  -d '{
-    "model": "dify|Chat|https://cloud.dify.ai/v1",
-    "stream": true,
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          "请分析这张图片。",
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "https://example.com/image.jpg"
-            }
-          }
-        ]
-      }
-    ]
-  }'
-```
-
-#### 接入方式三
-
-```bash
-curl http://localhost:3099/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1" \
-  -X POST \
-  -d '{
-    "model": "dify|app-xxxx|Chat",
-    "stream": true,
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          "请分析这张图片。",
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "https://example.com/image.jpg"
+              "url": "https://cloud.dify.ai/logo/logo-site.png"
             }
           }
         ]
@@ -505,10 +428,14 @@ curl http://localhost:3099/v1/chat/completions \
 
 ## 注意事项
 
-- **参数替换**：请将示例中的 `https://cloud.dify.ai/v1`、`app-xxxx`、`BOT_TYPE` 等参数替换为您实际的值。
-- **`BOT_TYPE`**：可选值为 `Chat`、`Completion` 或 `Workflow`，请根据您的应用类型选择。
-- **`INPUT_VARIABLE` 和 `OUTPUT_VARIABLE`**：主要用于 `Workflow` 类型的应用，如果不需要可省略。
+- **参数替换**：请将示例中的 `https://api.dify.ai/v1`、`app-xxxx`、`BOT_TYPE` 等参数替换为您实际的值。
+- **`model` 格式固定**：必须使用 `dify|BOT_TYPE|API_KEY`。
+- **`Authorization` 格式固定**：必须使用 `Bearer <DIFY_API_URL>`。
+- **`BOT_TYPE`**：可选值为 `Chat`、`Completion` 或 `Workflow`。
+- **`variable`**：支持传递自定义变量，内容会原样进入 Dify `inputs`。可使用 `input_*`、`output_*`、`custom_*`、`system_*`、`user_*` 等变量名；注意需要先在 Dify 开始节点中新增对应的段落类型输入字段。
+- **`files`**：支持顶层 `files` 传入字符串数组，自动根据 URL 后缀或 Data URL MIME 推断类型，也兼容 `messages[].content[].image_url`。
 - **`stream` 参数**：如果需要流式返回，请将 `stream` 设置为 `true`，否则可以省略或设置为 `false`。
+- **`x_dify` 扩展字段**：流式与非流式返回都会尽量保留 Dify 原始事件与元数据，便于调试与工作流事件消费。
 - **安全性**：请妥善保管您的 `API_KEY`，不要泄露给无关人员。
 
 ---
@@ -525,33 +452,50 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 更新日志
 
-### 2025-04-05更新
+### 2026-04-16 更新
 
-#### 已修复的问题
+#### 接口与路由
 
-1. **Base64图像处理问题**
-   - **问题**：无法正确处理base64编码的图像数据，错误地将其作为URL处理
-   - **修复**：添加了对以"data:"开头的数据的检测，并通过`uploadFileToDify`函数上传到Dify服务器
-   - **效果**：现在可以正确处理base64图像数据，获取文件ID并使用`local_file`方式引用
+1. **统一鉴权方式收敛**
+   - 移除了旧的三种混合配置方案。
+   - 当前只保留 `Authorization: Bearer <DIFY_API_URL>` + `model=dify|BOT_TYPE|API_KEY`。
+   - 这样可以让网关的配置解析更稳定，也避免旧格式带来的文档与实现不一致。
 
-2. **OpenAI标准格式消息处理**
-   - **问题**：不支持OpenAI标准格式的字符串类型内容处理
-   - **修复**：增加了`typeof content === "string"`的判断逻辑
-   - **效果**：可以处理多种类型的消息格式，包括字符串和对象混合的内容数组
+2. **统一 OpenAI 兼容入口增强**
+   - 继续以 `POST /v1/chat/completions` 作为唯一入口。
+   - 覆盖文本生成型应用、对话型应用、工作流编排对话型应用与 Workflow 应用。
+   - 根据 `BOT_TYPE` 自动路由到 `/completion-messages`、`/chat-messages` 或 `/workflows/run`。
 
-3. **文件类型自动识别**
-   - **问题**：所有文件都被错误地识别为"image"类型，导致PDF等文件处理失败
-   - **修复**：创建了`getFileExtension()`和`getFileType()`函数，根据扩展名识别文件类型
-   - **效果**：正确区分document、image、audio、video等不同类型文件，确保Dify能正确处理
+#### 请求体兼容能力
 
-4. **多消息图片处理**
-   - **问题**：只处理最后一条消息中的图片，忽略之前消息中的图片内容
-   - **修复**：重构了消息处理逻辑，先扫描所有消息找图片，再从最后一条提取文本
-   - **效果**：能够处理多条消息中的图片，不会遗漏任何消息中的图像内容
+3. **固定 variable 包裹对象**
+   - 当前版本固定使用顶层 `variable` 对象透传为 Dify `inputs`。
+   - `variable` 支持传递自定义变量，如 `input_*`、`output_*`、`custom_*`、`system_*`、`user_*` 等，并会原样进入 Dify `inputs`。
+   - 使用前需要先在 Dify 开始节点中新增对应的段落类型输入字段。
 
-5. **PM2脚本便捷命令**
-   - **改进**：添加了PM2管理的npm脚本命令
-   - **效果**：可以通过`npm run pm2:*`命令更方便地管理应用
+4. **顶层 files 字符串数组支持**
+   - 新增对顶层 `files` 的统一处理。
+   - 支持直接传入 URL、base64 Data URL，或 Dify 原生文件对象。
+   - 会根据扩展名或 MIME 自动推断为 `image`、`document`、`audio`、`video` 或 `custom`。
+
+5. **兼容 messages.image_url 文件输入**
+   - 继续兼容 `messages[].content[].image_url`。
+   - 现在会与顶层 `files` 一起统一收集并转换，便于多模态请求复用同一套处理逻辑。
+
+#### 事件与响应
+
+6. **Dify 原始事件透传增强**
+   - 在流式与非流式模式下补强 `x_dify` 扩展字段。
+   - 尽量保留 Dify 原始事件、工作流节点事件与元数据，方便调试、追踪和上层消费。
+
+7. **工作流编排对话型应用兼容增强**
+   - 将工作流编排对话型应用按更通用的 `Chat` 路径兼容，而不是绑定到单一业务场景。
+   - 对 `workflow_started`、`node_started`、`node_finished`、`node_retry`、`workflow_finished` 等事件做了更清晰的保留与映射。
+
+#### 文档与页面
+
+8. **静态文档页重构**
+   - 新文档补充了统一鉴权、四类应用请求 Schema、严格事件对象结构、SSE 映射规则与响应结构。
 
 ---
 

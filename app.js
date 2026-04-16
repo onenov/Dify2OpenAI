@@ -1,16 +1,9 @@
 // app.js
 
 import express from "express";
-import bodyParser from "body-parser";
-import fetch from "node-fetch";
-import FormData from "form-data";
-import { PassThrough } from "stream";
 import { log } from './config/logger.js';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { WebSocketServer } from 'ws';
-import { Tail } from 'tail';
 import http from 'http';
 
 // 引入各 bot 类型的处理器
@@ -20,93 +13,63 @@ import workflowHandler from "./botType/workflowHandler.js";
 
 // 从 utils.js 中导入工具函数
 import {
-  sanitizeLog,
   logRequest,
-  logResponse,
-  logApiCall,
   generateId,
 } from "./botType/utils.js";
 
-// 定义 parseConfig 函数
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 function parseConfig(authHeader, modelParam) {
   log("debug", "开始解析配置", {
     authHeader: authHeader ? authHeader.substring(0, 20) + "..." : "No Auth Header",
     modelParam,
   });
 
-  let config = {};
-
-  // 从 Authorization header 获取信息
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     log("error", "缺少或无效的 Authorization header");
     throw new Error("Missing or invalid Authorization header");
   }
 
-  const [_, token] = authHeader.split("Bearer ");
-  const tokenParts = token.split("|");
-
-  // 方式一：所有信息都在 Authorization header 中
-  if (tokenParts.length >= 3) {
-    const [difyApiUrl, apiKey, botType, inputVariable, outputVariable] = tokenParts;
-    config = {
-      DIFY_API_URL: difyApiUrl,
-      API_KEY: apiKey,
-      BOT_TYPE: botType,
-      INPUT_VARIABLE: inputVariable || "",
-      OUTPUT_VARIABLE: outputVariable || "",
-    };
-    log("info", "配置解析成功 - 方式一", config);
-    return config;
+  const difyApiUrl = authHeader.slice("Bearer ".length).trim();
+  if (!difyApiUrl) {
+    log("error", "Authorization 中缺少 DIFY_API_URL");
+    throw new Error("Missing DIFY_API_URL in Authorization header");
   }
 
-  // 方式二和方式三的处理
-  if (tokenParts.length === 1) {
-    const singleValue = tokenParts[0].trim();
-    
-    // 解析 model 参数
-    if (!modelParam) {
-      log("error", "缺少 model 参数");
-      throw new Error("Missing model parameter");
-    }
-
-    const modelParts = modelParam.split("|");
-    if (modelParts[0] !== "dify" || modelParts.length < 3) {
-      log("error", "无效的 model 参数格式");
-      throw new Error("Invalid model parameter format");
-    }
-
-    // 方式二：Authorization 是 API_KEY
-    if (singleValue.length > 0 && !singleValue.includes("http")) {
-      config.API_KEY = singleValue;
-      const [_, botType, difyApiUrl, inputVariable, outputVariable] = modelParts;
-      config.DIFY_API_URL = difyApiUrl;
-      config.BOT_TYPE = botType;
-      config.INPUT_VARIABLE = inputVariable || "";
-      config.OUTPUT_VARIABLE = outputVariable || "";
-      log("info", "配置解析成功 - 方式二", config);
-    }
-    // 方式三：Authorization 是 DIFY_API_URL
-    else {
-      config.DIFY_API_URL = singleValue;
-      const [_, apiKey, botType, inputVariable, outputVariable] = modelParts;
-      config.API_KEY = apiKey;
-      config.BOT_TYPE = botType;
-      config.INPUT_VARIABLE = inputVariable || "";
-      config.OUTPUT_VARIABLE = outputVariable || "";
-      log("info", "配置解析成功 - 方式三", config);
-    }
+  if (!modelParam) {
+    log("error", "缺少 model 参数");
+    throw new Error("Missing model parameter");
   }
 
-  // 验证必要的配置参数
+  const modelParts = modelParam.split("|");
+  if (modelParts.length !== 3 || modelParts[0] !== "dify") {
+    log("error", "无效的 model 参数格式", { modelParam });
+    throw new Error("Invalid model parameter format");
+  }
+
+  const [, botType, apiKey] = modelParts;
+  const config = {
+    DIFY_API_URL: difyApiUrl,
+    API_KEY: apiKey?.trim() || "",
+    BOT_TYPE: botType?.trim() || "",
+  };
+
   if (!config.DIFY_API_URL || !config.API_KEY || !config.BOT_TYPE) {
     log("error", "缺少必要的配置参数", {
       DIFY_API_URL: !!config.DIFY_API_URL,
       API_KEY: !!config.API_KEY,
       BOT_TYPE: !!config.BOT_TYPE,
-      config
+      config,
     });
     throw new Error("Missing required configuration parameters");
   }
+
+  log("info", "配置解析成功 - 唯一模式", {
+    DIFY_API_URL: config.DIFY_API_URL,
+    BOT_TYPE: config.BOT_TYPE,
+    API_KEY: config.API_KEY,
+  });
 
   return config;
 }
@@ -156,26 +119,6 @@ app.use((req, res, next) => {
 // 根路径
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
-});
-
-// 获取模型列表
-app.get("/v1/models", (req, res) => {
-  const models = {
-    object: "list",
-    data: [
-      {
-        id: "dify",
-        object: "model",
-        owned_by: "dify",
-        permission: null,
-        capabilities: {
-          vision: true,
-          file_processing: true,
-        },
-      },
-    ],
-  };
-  res.json(models);
 });
 
 // 处理 /v1/chat/completions 请求
@@ -246,10 +189,12 @@ app.post("/v1/chat/completions", async (req, res) => {
 });
 
 const server = http.createServer(app);
+const port = Number(process.env.PORT) || 3099;
 
-server.listen(process.env.PORT || 3099, () => {
+server.listen(port, () => {
   log('info', '服务器启动成功', {
-    port: process.env.PORT || 3099,
-    env: process.env.NODE_ENV || 'development'
+    port,
+    env: process.env.NODE_ENV || 'development',
+    local_url: `http://127.0.0.1:${port}`,
   });
 });

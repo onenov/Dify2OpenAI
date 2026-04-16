@@ -123,80 +123,49 @@ Note: Vercel serverless functions have a 10-second timeout limit.
 
 ---
 
-## Access Methods
+## Access Method
 
-### Method One: All Configurations in Authorization Header
+The current version only keeps one unified access mode:
 
-**Authorization Header Format:**
+- `Authorization` only carries `DIFY_API_URL`
+- `model` must be `dify|BOT_TYPE|API_KEY`
 
-```
-Authorization: Bearer DIFY_API_URL|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE
-```
-
-Example:
-
-```
-Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat
-```
-
-Set `model` parameter to `dify`
-
-### Method Two: API_KEY in Authorization Header
+### Unified Authentication Format
 
 **Authorization Header Format:**
 
 ```
-Authorization: Bearer API_KEY
+Authorization: Bearer <DIFY_API_URL>
 ```
 
 **Model Parameter Format:**
 
-```
-"model": "dify|BOT_TYPE|DIFY_API_URL|INPUT_VARIABLE|OUTPUT_VARIABLE"
-```
-
-Example:
-
-```
-Authorization: Bearer app-xxxx
-"model": "dify|Chat|https://cloud.dify.ai/v1"
+```json
+"model": "dify|BOT_TYPE|API_KEY"
 ```
 
-### Method Three: DIFY_API_URL in Authorization Header
+### Available BOT_TYPE Values
 
-**Authorization Header Format:**
+- `Completion`: text generation app, routed to `/completion-messages`
+- `Chat`: chat app, routed to `/chat-messages`
+- `Workflow`: workflow app, routed to `/workflows/run`
 
-```
-Authorization: Bearer DIFY_API_URL
-```
-
-**Model Parameter Format:**
-
-```
-"model": "dify|API_KEY|BOT_TYPE|INPUT_VARIABLE|OUTPUT_VARIABLE"
-```
-
-Example:
-
-```
-Authorization: Bearer https://cloud.dify.ai/v1
-"model": "dify|app-xxxx|Chat"
-```
+Note: workflow-orchestrated chat apps also use `BOT_TYPE=Chat`, while preserving richer raw Dify events through `x_dify`.
 
 ## Examples
 
-### Basic Chat Examples
-
-#### Method One
+### Basic Chat
 
 ```bash
 curl http://localhost:3099/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
   -X POST \
   -d '{
-    "model": "dify",
+    "model": "dify|Chat|app-xxxx",
     "stream": true,
+    "response_mode": "streaming",
+    "user": "demo-user",
     "messages": [
       {
         "role": "system",
@@ -210,127 +179,73 @@ curl http://localhost:3099/v1/chat/completions \
   }'
 ```
 
-#### Method Two
+### Fixed `variable` Wrapper Object
 
 ```bash
 curl http://localhost:3099/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer app-xxxx" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
   -X POST \
   -d '{
-    "model": "dify|Chat|https://cloud.dify.ai/v1",
+    "model": "dify|Workflow|app-xxxx",
     "stream": true,
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
-      },
-      {
-        "role": "user",
-        "content": "Hello"
-      }
+    "response_mode": "streaming",
+    "user": "demo-user",
+    "query": "Please execute this task.",
+    "variable": {
+      "task_type": "generic",
+      "priority": "normal"
+    }
+  }'
+```
+
+### Top-Level `files` String Array
+
+```bash
+curl http://localhost:3099/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
+  -X POST \
+  -d '{
+    "model": "dify|Chat|app-xxxx",
+    "stream": true,
+    "response_mode": "streaming",
+    "user": "abc-123",
+    "query": "What are the specs of the iPhone 13 Pro Max?",
+    "conversation_id": "",
+    "variable": {},
+    "files": [
+      "https://example.com/a.png",
+      "https://example.com/b.txt",
+      "https://example.com/c.mp4"
     ]
   }'
 ```
 
-#### Method Three
+### Compatible with `messages[].content[].image_url`
 
 ```bash
 curl http://localhost:3099/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1" \
+  -H "Authorization: Bearer https://api.dify.ai/v1" \
   -X POST \
   -d '{
-    "model": "dify|app-xxxx|Chat",
+    "model": "dify|Chat|app-xxxx",
     "stream": true,
-    "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
-      },
-      {
-        "role": "user",
-        "content": "Hello"
-      }
-    ]
-  }'
-```
-
-### Image Chat Examples
-
-#### Method One
-
-```bash
-curl http://localhost:3099/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1|app-xxxx|Chat" \
-  -X POST \
-  -d '{
-    "model": "dify",
-    "stream": true,
+    "response_mode": "streaming",
+    "user": "abc-123",
     "messages": [
       {
         "role": "user",
         "content": [
-          "Please analyze this image.",
+          {
+            "type": "text",
+            "text": "What are the specs of the iPhone 13 Pro Max?"
+          },
           {
             "type": "image_url",
             "image_url": {
-              "url": "https://example.com/image.jpg"
-            }
-          }
-        ]
-      }
-    ]
-  }'
-```
-
-#### Method Two
-
-```bash
-curl http://localhost:3099/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer app-xxxx" \
-  -X POST \
-  -d '{
-    "model": "dify|Chat|https://cloud.dify.ai/v1",
-    "stream": true,
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          "Please analyze this image.",
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "https://example.com/image.jpg"
-            }
-          }
-        ]
-      }
-    ]
-  }'
-```
-
-#### Method Three
-
-```bash
-curl http://localhost:3099/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer https://cloud.dify.ai/v1" \
-  -X POST \
-  -d '{
-    "model": "dify|app-xxxx|Chat",
-    "stream": true,
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          "Please analyze this image.",
-          {
-            "type": "image_url",
-            "image_url": {
-              "url": "https://example.com/image.jpg"
+              "url": "https://cloud.dify.ai/logo/logo-site.png"
             }
           }
         ]
@@ -343,11 +258,15 @@ curl http://localhost:3099/v1/chat/completions \
 
 ## Notes
 
-- **Parameter Replacement**: Please replace parameters such as `https://cloud.dify.ai/v1`, `app-xxxx`, `BOT_TYPE`, etc. with your actual values.
-- **`BOT_TYPE`**: Available values are `Chat`, `Completion`, or `Workflow`, choose according to your application type.
-- **`INPUT_VARIABLE` and `OUTPUT_VARIABLE`**: Mainly used for `Workflow` type applications, can be omitted if not needed.
-- **`stream` Parameter**: If you need streaming responses, set `stream` to `true`, otherwise you can omit it or set it to `false`.
-- **Security**: Keep your `API_KEY` secure and do not share it with unauthorized individuals.
+- **Parameter Replacement**: Replace `https://api.dify.ai/v1`, `app-xxxx`, and `BOT_TYPE` with your actual values.
+- **Fixed `model` Format**: You must use `dify|BOT_TYPE|API_KEY`.
+- **Fixed `Authorization` Format**: You must use `Bearer <DIFY_API_URL>`.
+- **`BOT_TYPE`**: Available values are `Chat`, `Completion`, or `Workflow`.
+- **`variable`**: Supports custom variables and passes them through to Dify `inputs` as-is. You can use variable names such as `input_*`, `output_*`, `custom_*`, `system_*`, and `user_*`; make sure to create the corresponding paragraph-type input fields in the Dify Start node first.
+- **`files`**: Supports top-level `files` as a string array, with automatic type inference by URL suffix or Data URL MIME. `messages[].content[].image_url` is also supported.
+- **`stream`**: Set `stream` to `true` for streaming responses, otherwise omit it or set it to `false`.
+- **`x_dify` Extension Field**: Both streaming and blocking modes preserve Dify raw events and metadata as much as possible for debugging and workflow event consumption.
+- **Security**: Keep your `API_KEY` secure and do not share it with unauthorized parties.
 
 ---
 
@@ -505,6 +424,61 @@ WeChat：**`AOKIEO`** ｜ Mail: **`dev@orence.ai`**
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Changelog
+
+### 2026-04-16
+
+#### API and Routing
+
+1. **Unified authentication format simplified**
+   - Removed the previous mixed configuration modes.
+   - The gateway now only supports `Authorization: Bearer <DIFY_API_URL>` plus `model=dify|BOT_TYPE|API_KEY`.
+   - This keeps runtime behavior and documentation aligned.
+
+2. **Unified OpenAI-compatible entry improved**
+   - `POST /v1/chat/completions` remains the only public entry.
+   - It now clearly covers text generation apps, chat apps, workflow-orchestrated chat apps, and workflow apps.
+   - Requests are routed automatically to `/completion-messages`, `/chat-messages`, or `/workflows/run` based on `BOT_TYPE`.
+
+#### Request Compatibility
+
+3. **Fixed `variable` wrapper object**
+   - The current version uses the top-level `variable` object as the documented way to pass Dify `inputs`.
+   - `variable` supports custom variables such as `input_*`, `output_*`, `custom_*`, `system_*`, and `user_*`, and passes them through to Dify `inputs` as-is.
+   - Make sure the corresponding paragraph-type input fields are created in the Dify Start node first.
+
+4. **Top-level `files` string array support**
+   - Added unified handling for top-level `files`.
+   - Supports URL strings, base64 Data URLs, and native Dify file objects.
+   - File type is inferred automatically as `image`, `document`, `audio`, `video`, or `custom`.
+
+5. **`messages.image_url` compatibility retained**
+   - `messages[].content[].image_url` is still supported.
+   - It is now collected and normalized together with top-level `files` for a more consistent multimodal pipeline.
+
+#### Events and Responses
+
+6. **Raw Dify event passthrough enhanced**
+   - The `x_dify` extension field has been strengthened in both streaming and blocking modes.
+   - Raw Dify events, workflow node events, and metadata are preserved as much as possible for debugging and upper-layer consumers.
+
+7. **Workflow-orchestrated chat compatibility improved**
+   - Workflow-orchestrated chat is handled through the more general `Chat` path instead of a single narrow scenario.
+   - Workflow events such as `workflow_started`, `node_started`, `node_finished`, `node_retry`, and `workflow_finished` are preserved more clearly.
+
+#### Documentation and UI
+
+8. **Static documentation page rebuilt**
+   - Removed the OpenAPI / Scalar runtime documentation dependency from the main page.
+   - `public/index.html` now serves as the single static documentation page.
+
+9. **Documentation interaction improved**
+   - The page now supports dynamic `DIFY_API_URL`, `API_KEY`, and `BOT_TYPE` inputs for generating request schemas and cURL examples.
+   - Request schema tabs are split into `Completion`, `Chat`, `Advanced Chat`, and `Workflow`.
+   - Code blocks support copy buttons, the header includes mail and GitHub icons, and the footer uses an auto-updated year.
 
 ---
 

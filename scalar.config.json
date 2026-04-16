@@ -1,0 +1,52 @@
+{
+  "$schema": "https://registry.scalar.com/@scalar/schemas/config",
+  "scalar": "2.0.0",
+  "siteConfig": {
+    "theme": "kepler",
+    "colorScheme": {
+      "default": "system",
+      "showToggle": true
+    },
+    "layout": {
+      "search": {
+        "enabled": true,
+        "position": "header"
+      }
+    },
+    "head": {
+      "title": "Dify2OpenAI API Reference",
+      "meta": {
+        "description": "Dify2OpenAI Gateway API reference generated from the current codebase"
+      }
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "title": "API Reference",
+        "path": "/api",
+        "icon": "phosphor/regular/notebook"
+      }
+    ],
+    "routes": {
+      "/": {
+        "type": "openapi",
+        "title": "Dify2OpenAI API Reference",
+        "filepath": "api/openapi.json",
+        "icon": "phosphor/regular/notebook",
+        "config": {
+          "theme": "kepler"
+        }
+      },
+      "/api": {
+        "type": "openapi",
+        "title": "Dify2OpenAI API Reference",
+        "filepath": "api/openapi.json",
+        "icon": "phosphor/regular/notebook",
+        "config": {
+          "theme": "kepler"
+        }
+      }
+    }
+  }
+}
